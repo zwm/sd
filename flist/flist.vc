@@ -1,0 +1,17 @@
+// tb
+../tb/tb_top.v
+../tb/sd_card.v
+../tb/dma_serv.v
+// rtl
+../rtl/sdio_buf.v
+../rtl/sdio_clk.v
+../rtl/sdio_cmd.v
+../rtl/sdio_crc16.v
+../rtl/sdio_crc7.v
+../rtl/sdio_dat.v
+../rtl/sdio_dma.v
+../rtl/sdio_flag.v
+../rtl/sdio_reg.v
+../rtl/sdio_sync.v
+../rtl/sdio_timer.v
+../rtl/sdio_top.v
