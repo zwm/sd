@@ -1,0 +1,17 @@
+// trans0, blk0
+rd_wait_max 50
+crc_wait_max 20
+busy_wait_max 10
+// trans0, blk1
+rd_wait_max 50
+crc_wait_max 20
+busy_wait_max 10
+// trans1, blk0
+rd_wait_max 50
+crc_wait_max 20
+busy_wait_max 10
+// trans1, blk1
+rd_wait_max 50
+crc_wait_max 20
+busy_wait_max 10
+

@@ -8,3 +8,4 @@ vcs +v2k -debug_all -full64 \
 +nospecify \
 -l sim.log \
 -top tb_top \
+-R \

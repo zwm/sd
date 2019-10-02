@@ -1,0 +1,12 @@
+// cmd0, rst
+resp_len 0
+// cmd1, blk_size
+resp_len 0
+// cmd2, blk_cnt
+resp_len 0
+// cmd3, bus_width
+resp_len 0
+// cmd4, multi_wr
+resp_len 0
+// cmd5, multi_rd
+resp_len 0
