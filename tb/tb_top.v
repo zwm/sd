@@ -7,8 +7,8 @@ reg sim_end;
 reg [8*64-1:0] case_dir;
 // global
 reg rstn, sd_clk, bus_clk, reg_data_wr;
-reg [7:0] reg_addr, reg_wdata; 
-wire [7:0] reg_rdata, bus_rdata;
+reg [7:0] reg_addr, reg_wdata; wire [16:0] bus_addr;
+wire [7:0] reg_rdata, bus_rdata, bus_wdata;
 wire bus_ready, bus_rdata_ready, bus_rd, bus_wr;
 wire pad_clk_i, pad_clk_o, pad_clk_oe;
 wire pad_cmd_i, pad_cmd_o, pad_cmd_oe;
@@ -80,14 +80,15 @@ sdio_top u0_sdio (
     .bus_rdata_ready        ( bus_rdata_ready       ),
     .bus_rdata              ( bus_rdata             ),
     .bus_addr               ( bus_addr              ),
+    .bus_wdata              ( bus_wdata             ),
     .bus_rd                 ( bus_rd                ),
     .bus_wr                 ( bus_wr                ),
     .sdio_irq               ( sdio_irq              ),
     .pad_clk_o              ( pad_clk_o             ),
     .pad_clk_oe             ( pad_clk_oe            ),
-    .pad_clk_i              ( pad_clk_i             ),
-    .pad_clk_o              ( pad_clk_o             ),
-    .pad_clk_oe             ( pad_clk_oe            ),
+    .pad_cmd_i              ( pad_cmd_i             ),
+    .pad_cmd_o              ( pad_cmd_o             ),
+    .pad_cmd_oe             ( pad_cmd_oe            ),
     .pad_dat_i              ( pad_dat_i             ),
     .pad_dat_o              ( pad_dat_o             ),
     .pad_dat_oe             ( pad_dat_oe            )

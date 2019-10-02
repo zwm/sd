@@ -41,12 +41,12 @@ always @(posedge bus_clk)
     if (bus_wr_dly[RD_DLY_CYC - 1]) begin
         mem[bus_addr] <= bus_wdata;
     end
-wire new_tx_cmd = (tb_top.u0_sdio.cmd_start == 1) && (tb_top.u0_sdio_top.dat_present == 1) && (tb_top.u0_sdio.dat_trans_dir == 0);
+wire new_tx_cmd = (tb_top.u0_sdio.cmd_start == 1) && (tb_top.u0_sdio.dat_present == 1) && (tb_top.u0_sdio.dat_trans_dir == 0);
 wire tx_blk_end = (tb_top.u0_sdio.u5_dat.blk_gap_event == 1) && (tb_top.u0_sdio.dat_trans_dir == 0);
 // mem init
 initial begin: SIM_SD_DMA
     integer fp, ret, i, addr;
-    reg [64:8-1:0] s;
+    reg [64*8-1:0] s;
     reg [15:0] dat_len, dma_start_addr, dma_len;
     @(posedge tb_top.rstn);
     fp = $fopen({tb_top.case_dir, "dma_dat.dat"}, "r");
@@ -61,7 +61,7 @@ initial begin: SIM_SD_DMA
             if (new_tx_cmd | tx_blk_end) begin
                 ret = $fgets(s, fp); // skip comment
                 $display("%t, File: dma_dat, Comment: %s", $time, s);
-                ret = $scanf(fp, "%h %h %h", dat_len, dma_start_addr, dma_len);
+                ret = $fscanf(fp, "%h %h %h", dat_len, dma_start_addr, dma_len);
                 $display("%t, File: dma_dat, dat_len: %h, dma_start_addr: %h, dma_len: %h", $time, dat_len, dma_start_addr, dma_len);
                 addr = 0;
                 for (i = 0; i < dat_len[15:0]; i = i + 1) begin

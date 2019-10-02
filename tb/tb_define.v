@@ -19,9 +19,10 @@
 // trans dir
 `define TRANS_DIR_WR            0
 `define TRANS_DIR_RD            1
-
-
-
+// inst
+`define TOP_RSTN                tb_top.rstn
+`define TOP_CASE_DIR            tb_top.case_dir
+`define TOP_SIM_END             tb_top.sim_end
 
 
 

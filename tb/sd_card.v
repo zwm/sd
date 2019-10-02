@@ -7,6 +7,7 @@ module sd_card (
 // reg [7:0] mem [2^16-1:0]; // using 2^16 memory
 reg [7:0] mem [2**16-1:0]; // using 2^16 memory, must using "**" instead of "^"
 wire sd_clk, cmd_i; reg cmd_o, cmd_oe;
+wire [3:0] dat_i, dat_o, dat_oe;
 reg [3:0] rd_dat_i, rd_dat_o, rd_dat_oe;
 reg [3:0] wr_dat_i, wr_dat_o, wr_dat_oe;
 reg [7:0] wr_data, rd_data;

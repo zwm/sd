@@ -116,6 +116,14 @@ endtask
 task set_blk_size;
     input [15:0] val;
     begin
+        wr_reg(0, val[7:0]);
+        wr_reg(1, val[15:8]);
+    end
+endtask
+// set_blk_cnt
+task set_blk_cnt;
+    input [15:0] val;
+    begin
         wr_reg(2, val[7:0]);
         wr_reg(3, val[15:8]);
     end
