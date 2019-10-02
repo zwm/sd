@@ -69,7 +69,7 @@ initial begin: SIM_SD_DMA
                     mem[dma_start_addr[15:0] + addr[15:0]] = s[7:0];
                     //$display("addr: %h, dat: %h, mem: %h", addr, s[7:0], mem[dma_start_addr[15:0] + addr[15:0]]);
                     if (addr[15:0] == dma_len[15:0] - 1) addr = 0;
-                    else addr <= addr + 1;
+                    else addr = addr + 1;
                 end
                 ret = $fgets(s, fp); // must add here to skip "\n"
             end

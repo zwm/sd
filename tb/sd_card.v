@@ -66,7 +66,7 @@ assign cmd_end = cmd_dat[0];
 reg [15:0] block_size, block_count;
 reg bus_width;
 // cmd
-wire cmd_rx_end = (cmd_tx_st == CMD_RX_END);
+wire cmd_rx_end = (cmd_rx_st == CMD_RX_END);
 wire cmd0  = cmd_rx_end == 1 && cmd_index == 0; // reset
 wire cmd12 = cmd_rx_end == 1 && cmd_index == 12; // abort
 wire cmd11 = cmd_rx_end == 1 && cmd_index == 11; // bus_width
@@ -637,7 +637,7 @@ always @(posedge wr_clk or negedge rstn)
 assign wr_crc_rst = (wr_st == WR_START); // each block start
 assign wr_crc_en = (wr_st == WR_DATA);
 assign wr_crc_din = dat_i[3:0];
-assign dat_blk_req_rd = (wr_st == WR_START) && (bus_width ? dat_i[3:0] == 4'h0 : dat_i[0] == 1'b0);
+assign dat_blk_req_wr = (wr_st == WR_START) && (bus_width ? dat_i[3:0] == 4'h0 : dat_i[0] == 1'b0);
 always @(posedge sd_clk)
     if (wr_st == WR_START) begin
         wr_crc_err <= 0;

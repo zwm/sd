@@ -300,6 +300,7 @@ task wr_blk;
         set_trans_dir(`TRANS_DIR_WR);
         // start
         cmd_multiple_wr;
+        wait_dat; irq_flag_clr;
     end
 endtask
 // wr_rd_blk
