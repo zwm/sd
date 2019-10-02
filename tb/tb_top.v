@@ -44,7 +44,7 @@ initial begin
     //set_cmd_idx(6'h00);
     //wr_blk_1b(512, 2);
     //wr_blk_4b(512, 2);
-    //wr_blk(0, 512, 2); // 1-bit
+    wr_blk(0, 512, 2); // 1-bit
     //wr_blk(1, 512, 2); // 4-bit
     //wr_rd_blk(0, 512, 2); // 1-bit
     //wr_rd_blk(1, 512, 2); // 4-bit
