@@ -492,7 +492,7 @@ always @(posedge sd_clk)
     if (st_curr == RX_DATA_BYTE)
         if (rx_en)
             if (dat_trans_width == 0) // 1-bit
-                dma_rx_buf[bit_cnt] <= dat_i_1b;
+                dma_rx_buf[7 - bit_cnt] <= dat_i_1b;
             else
                 if (bit_cnt == 0)
                     dma_rx_buf[7:4] <= dat_i_4b;

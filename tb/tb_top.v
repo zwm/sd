@@ -47,7 +47,7 @@ initial begin
     //wr_blk(0, 512, 2); // 1-bit
     //wr_blk(1, 512, 2); // 4-bit
     //wr_rd_blk(0, 512, 2); // 1-bit
-    wr_rd_blk(1, 512, 2); // 4-bit
+    wr_rd_blk(0, 512, 2); // 4-bit
     #100_000;
     sim_end = 1;
     #100_000;

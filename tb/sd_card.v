@@ -407,7 +407,7 @@ always @(posedge rd_clk or negedge rstn)
                 end
                 // output
                 if (~bus_width) begin
-                    rd_dat_o[0] <= mem[rd_addr][rd_bit_cnt]; // reverse ???
+                    rd_dat_o[0] <= mem[rd_addr][7 - rd_bit_cnt]; // reverse ???
                     rd_dat_oe[0] <= 1'b1;
                 end
                 else begin
