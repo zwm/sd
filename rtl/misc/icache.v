@@ -11,22 +11,22 @@ output [31:0] inst_data,
 
 //code interface
 input code_valid,
-    input [31:0] code_data,
-    output reg code_rd,
-    output reg [ADDRLEN-3:0] code_addr,
+input [31:0] code_data,
+output reg code_rd,
+output reg [ADDRLEN-3:0] code_addr,
 
-    // memory access mode
-    input [1:0] cache_ctrl,
-    input bus_clk, bus_access, bus_wr,
-    input [13:0] bus_addr,
-    input [7:0] bus_wdata,
-    output [7:0] bus_rdata,
+// memory access mode
+input [1:0] cache_ctrl,
+input bus_clk, bus_access, bus_wr,
+input [13:0] bus_addr,
+input [7:0] bus_wdata,
+output [7:0] bus_rdata,
 
 
-    // bist
-    input scan_mode,
-    input [3:0] bist_ctrl,
-    output bist_done, bist_fail
+// bist
+input scan_mode,
+input [3:0] bist_ctrl,
+output bist_done, bist_fail
 );
 
 localparam SIZE = 7;
