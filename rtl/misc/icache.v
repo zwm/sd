@@ -99,7 +99,7 @@ begin
     for (j = 0; j < 4; j = j + 1) begin
         tag_high_incr = tag_ram_hi[j] + 1;
         tag_high_init[j*HB+:HB] = j;
-        tag_high_hit[J*HB+:HB] = j == hitway ? 4 :
+        tag_high_hit[j*HB+:HB] = j == hitway ? 4 :
                                                     {tag_ram_valid[j], tag_ram_hi[j] < hitval ? tag_high_incr : tag_ram_hi[j]};
         tag_high_update[j*HB+:HB] = j == replaceway ? 4 : {tag_ram_valid[j], tag_high_incr};
     end
