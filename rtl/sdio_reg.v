@@ -47,6 +47,7 @@ module sdio_reg (
     input [4:0] dat_fsm,
     input pad_clk_o, pad_cmd_oe, pad_cmd_o, pad_cmd_i,
     input [3:0] pad_dat_i, pad_dat_oe, pad_dat_o,
+    output reg [1:0] pad_sel,
     output reg dma_sw_start, dma_mram_sel, dma_rst, dma_hw_start_disable, dma_slavemode,
     output reg [15:0] dma_start_addr, dma_len,
     input [15:0] dma_addr,
@@ -70,6 +71,7 @@ always @(posedge sd_clk or negedge rstn)
         {dat_timeout_cnt_sw_en, dat_sd_rst, cmd_sd_rst, all_sd_rst} <= 0;
         {err_irq_en, card_irq_en, blk_gap_irq_en, dat_complete_irq_en, cmd_complete_irq_en} <= 0;
         {dat_end_err_en, dat_crc_err_en, dat_timeout_err_en, cmd_index_err_en, cmd_end_err_en, cmd_crc_err_en, cmd_timeout_err_en} <= 0;
+        pad_sel <= 0;
     end
     else if (reg_wr_sd) begin
         case (reg_addr)
@@ -90,6 +92,7 @@ always @(posedge sd_clk or negedge rstn)
             8'd31: {dat_timeout_cnt_sw_en, dat_sd_rst, cmd_sd_rst, all_sd_rst} <= reg_wdata[3:0];
             8'd34: {err_irq_en, card_irq_en, blk_gap_irq_en, dat_complete_irq_en, cmd_complete_irq_en} <= reg_wdata[4:0];
             8'd35: {dat_end_err_en, dat_crc_err_en, dat_timeout_err_en, cmd_index_err_en, cmd_end_err_en, cmd_crc_err_en, cmd_timeout_err_en} <= reg_wdata[6:0];
+            8'd40: pad_sel[1:0] <= reg_wdata[1:0];
         endcase
     end
 //---------------------------------------------------------------------------
@@ -178,6 +181,7 @@ always @(*)
         8'd37: reg_rdata = {dat_busy, 2'h0, dat_fsm};
         8'd38: reg_rdata = {pad_clk_o, pad_cmd_oe, pad_cmd_o, pad_cmd_i, pad_dat_i};
         8'd39: reg_rdata = {pad_dat_oe, pad_dat_o};
+        8'd40: reg_rdata = {6'd0, pad_sel[1:0]};
         // dma
         8'd128: reg_rdata = 8'h00; // dma_sw_start, not readable
         8'd129: reg_rdata = {3'h0, dma_mram_sel, 2'h0, dma_rst, dma_hw_start_disable};

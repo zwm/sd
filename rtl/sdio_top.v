@@ -86,6 +86,7 @@ wire cmd_busy; // indicate cmd machine state
 wire [3:0] cmd_fsm;
 wire dat_busy; // indicate dat machine state
 wire [4:0] dat_fsm;
+wire [1:0] pad_sel;
 // dma
 wire dma_sw_start, dma_mram_sel, dma_rst, dma_hw_start_disable;
 wire [15:0] dma_start_addr, dma_len, dma_addr;
@@ -272,6 +273,7 @@ sdio_reg u2_reg (
     .pad_dat_i                  ( pad_dat_i                     ),
     .pad_dat_oe                 ( pad_dat_oe                    ),
     .pad_dat_o                  ( pad_dat_o                     ),
+    .pad_sel                    ( pad_sel                       ),
     .dma_sw_start               ( dma_sw_start                  ), // dma
     .dma_mram_sel               ( dma_mram_sel                  ),
     .dma_rst                    ( dma_rst                       ),
@@ -337,6 +339,7 @@ sdio_dat u5_dat (
     .blk_gap_stop               ( blk_gap_stop                  ),
     .blk_gap_clk_en             ( blk_gap_clk_en                ),
     .blk_gap_read_wait_en       ( blk_gap_read_wait_en          ),
+    .pad_sel                    ( pad_sel                       ),
     .dat_crc_err_event          ( dat_crc_err_event             ),
     .dat_end_err_event          ( dat_end_err_event             ),
     .blk_gap_event              ( blk_gap_event                 ),

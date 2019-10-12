@@ -10,6 +10,7 @@ module sdio_dat (
     input blk_gap_stop, // 1: stop, 0: continue, no need continue reg???
     input blk_gap_clk_en, // 1: stop, 0: continue, no need continue reg???
     input blk_gap_read_wait_en, // 1: drive DAT[2] low to stop card output
+    input pad_sel, // single bit mode, SD_DAT0~3 select
     output reg dat_crc_err_event,
     output reg dat_end_err_event,
     output blk_gap_event, // block gap can trigger irq
@@ -34,18 +35,9 @@ module sdio_dat (
     output dma_tx_byte_end,
     // status
     // gpio
-    input dat_0_i,
-    input dat_1_i,
-    input dat_2_i,
-    input dat_3_i,
-    output reg dat_0_o,
-    output reg dat_1_o,
-    output reg dat_2_o,
-    output reg dat_3_o,
-    output reg dat_0_oe,
-    output reg dat_1_oe,
-    output reg dat_2_oe,
-    output reg dat_3_oe
+    input dat_0_i, dat_1_i, dat_2_i, dat_3_i,
+    output dat_0_o, dat_1_o, dat_2_o, dat_3_o,
+    output dat_0_oe, dat_1_oe, dat_2_oe, dat_3_oe
 );
 // macro
 `define     CRC_LEN             16
@@ -76,15 +68,10 @@ localparam TX_BLK_GAP_STOP      = 5'd20;
 localparam WAIT_EIGHT_CYC       = 5'd21;
 // wire
 reg [2:0] bit_cnt;
-reg [15:0] byte_cnt;
-reg [15:0] blk_cnt;
-wire dat_i_1b;
-wire [3:0] dat_i_4b;
-reg rx_start_flag;
-reg rx_end_flag;
-wire [2:0] bit_cnt_max;
-wire [2:0] ncrc_cnt_max;
-wire [2:0] crc_sts_cnt_max;
+reg [15:0] byte_cnt, blk_cnt;
+reg dat_i_1b_mux; wire dat_i_1b, dat_i_sts; wire [3:0] dat_i_4b;
+reg rx_start_flag, rx_end_flag;
+wire [2:0] bit_cnt_max, ncrc_cnt_max, crc_sts_cnt_max;
 wire rx_block_end;
 wire last_bit, last_byte, last_blk;
 wire last_crc, last_ncrc, last_crc_sts;
@@ -95,6 +82,7 @@ wire crc0_din_en, crc1_din_en, crc2_din_en, crc3_din_en;
 wire [`CRC_LEN-1:0] crc0, crc1, crc2, crc3;
 wire tx_lane_0, tx_lane_1, tx_lane_2, tx_lane_3;
 reg rx_crc_err, dma_tx_byte_flag;
+reg [3:0] dat_o, dat_oe;
 // max
 assign bit_cnt_max = dat_trans_width ? 3'd1 : 3'd7; // 4-bit: 2 cycles, 1-bit: 8 cycles
 assign ncrc_cnt_max = 3'd0; // smih: 3, jesd: 2
@@ -108,9 +96,26 @@ assign last_ncrc = (bit_cnt[2:0] == ncrc_cnt_max[2:0]);
 assign last_crc_sts = (bit_cnt[2:0] == crc_sts_cnt_max[2:0]);
 assign last_chk_busy = (bit_cnt[2:0] == 3'd7);
 assign last_tx_pbit = (bit_cnt[2:0] == 3'd2); // Nwr = 2
-// dat_i bus alias
-assign dat_i_1b = dat_0_i;
+// dat_i mux
+always @(*)
+    case (pad_sel)
+        2'b00: dat_i_1b_mux = dat_0_i;
+        2'b01: dat_i_1b_mux = dat_1_i;
+        2'b10: dat_i_1b_mux = dat_2_i;
+        default: dat_i_1b_mux = dat_3_i;
+    endcase
+assign dat_i_1b = dat_i_1b_mux;
 assign dat_i_4b = {dat_3_i, dat_2_i, dat_1_i, dat_0_i};
+assign dat_i_sts = (dat_trans_width == 0) ? dat_i_1b : dat_i_4b[0];
+// dat_o mux
+assign dat_0_o = (dat_trans_width == 0 && pad_sel == 2'b00) ? dat_o[0] : dat_o[0];
+assign dat_1_o = (dat_trans_width == 0 && pad_sel == 2'b01) ? dat_o[0] : dat_o[1];
+assign dat_2_o = (dat_trans_width == 0 && pad_sel == 2'b10) ? dat_o[0] : dat_o[2];
+assign dat_3_o = (dat_trans_width == 0 && pad_sel == 2'b11) ? dat_o[0] : dat_o[3];
+assign dat_0_oe = (dat_trans_width == 0 && pad_sel == 2'b00) ? dat_oe[0] : dat_oe[0];
+assign dat_1_oe = (dat_trans_width == 0 && pad_sel == 2'b01) ? dat_oe[0] : dat_oe[1];
+assign dat_2_oe = (dat_trans_width == 0 && pad_sel == 2'b10) ? dat_oe[0] : dat_oe[2];
+assign dat_3_oe = (dat_trans_width == 0 && pad_sel == 2'b11) ? dat_oe[0] : dat_oe[3];
 // tx_lane
 assign tx_lane_0 = dat_trans_width ? (bit_cnt[0] ? dma_tx_byte[0] : dma_tx_byte[4]) : dma_tx_byte[7 - bit_cnt];
 assign tx_lane_1 = dat_trans_width ? (bit_cnt[0] ? dma_tx_byte[1] : dma_tx_byte[5]) : 1'b1;
@@ -251,7 +256,7 @@ always @(*) begin
         end
         TX_CRC_STS_START: begin
             if (rx_en) begin
-                if (dat_0_i == 1'b0) // valid start
+                if (dat_i_sts == 1'b0) // 4-bit mode, pad_sel ignored
                     st_next = TX_CRC_STS_DATA;
             end
         end
@@ -268,7 +273,7 @@ always @(*) begin
         end
         TX_CHECK_BUSY: begin // smih, check if busy comes in 8 cycles
             if (rx_en) begin
-                if (dat_0_i == 1'b0)
+                if (dat_i_sts == 1'b0)
                     st_next = TX_WAIT_BUSY;
                 else if (last_chk_busy)
                     st_next = TX_BLOCK_END;
@@ -276,7 +281,7 @@ always @(*) begin
         end
         TX_WAIT_BUSY: begin
             if (rx_en) begin
-                if (dat_0_i == 1'b1)
+                if (dat_i_sts == 1'b1)
                     st_next = TX_BLOCK_END;
             end
         end
@@ -298,19 +303,13 @@ end
 always @(posedge sd_clk or negedge rstn) begin
     if (~rstn) begin
         bit_cnt <= 0; byte_cnt <= 0; blk_cnt <= 0;
-        dat_0_o <= 1'b1; dat_0_oe <= 1'b0;
-        dat_1_o <= 1'b1; dat_1_oe <= 1'b0;
-        dat_2_o <= 1'b1; dat_2_oe <= 1'b0;
-        dat_3_o <= 1'b1; dat_3_oe <= 1'b0;
+        dat_o <= 4'hf; dat_oe <= 4'h0;
     end
     else begin
         case (st_curr)
             IDLE: begin
                 bit_cnt <= 0; byte_cnt <= 0; blk_cnt <= 0;
-                dat_0_o <= 1'b1; dat_0_oe <= 1'b0;
-                dat_1_o <= 1'b1; dat_1_oe <= 1'b0;
-                dat_2_o <= 1'b1; dat_2_oe <= 1'b0;
-                dat_3_o <= 1'b1; dat_3_oe <= 1'b0;
+                dat_o <= 4'hf; dat_oe <= 4'h0;
             end
             RX_START_BIT: begin
                 if (rx_en & rx_start_flag) begin
@@ -348,21 +347,21 @@ always @(posedge sd_clk or negedge rstn) begin
             end
             RX_BLK_GAP_STOP: begin
                 if (last_blk == 0 && blk_gap_stop == 1 && blk_gap_read_wait_en == 1) begin // read wait, drive DAT[2] low
-                    dat_2_o <= 1'b0;
-                    dat_2_oe <= 1'b1;
+                    dat_o[2] <= 1'b0;
+                    dat_oe[2] <= 1'b1;
                 end
                 else begin // release DAT[2]
-                    dat_2_o <= 1'b1;
-                    dat_2_oe <= 1'b0;
+                    dat_o[2] <= 1'b1;
+                    dat_oe[2] <= 1'b0;
                 end
             end
             TX_PRE_PBIT: begin
                 // data lane drive high
-                dat_0_o <= 1'b1; dat_0_oe <= 1'b1;
-                if (dat_trans_width) begin
-                    dat_1_o <= 1'b1; dat_1_oe <= 1'b1;
-                    dat_2_o <= 1'b1; dat_2_oe <= 1'b1;
-                    dat_3_o <= 1'b1; dat_3_oe <= 1'b1;
+                if (~dat_trans_width) begin
+                    dat_o[0] <= 1'b1; dat_oe[0] <= 1'b1;
+                end
+                else begin
+                    dat_o[3:0] <= 4'hf; dat_oe[3:0] <= 4'hf;
                 end
                 if (tx_en) begin
                     bit_cnt <= bit_cnt + 1; // pbit cnt
@@ -371,11 +370,11 @@ always @(posedge sd_clk or negedge rstn) begin
             TX_START_BIT: begin
                 if (tx_en) begin
                     // data lane drive low
-                    dat_0_o <= 1'b0;
-                    if (dat_trans_width) begin
-                        dat_1_o <= 1'b0;
-                        dat_2_o <= 1'b0;
-                        dat_3_o <= 1'b0;
+                    if (~dat_trans_width) begin
+                        dat_o[0] <= 1'b0;
+                    end
+                    else begin
+                        dat_o[3:0] <= 4'h0;
                     end
                     bit_cnt <= 0; // init cnt
                     byte_cnt <= 0;
@@ -389,8 +388,8 @@ always @(posedge sd_clk or negedge rstn) begin
             TX_DATA_BYTE: begin
                 if (tx_en) begin
                     // data lane drive
-                    dat_0_o <= tx_lane_0; dat_1_o <= tx_lane_1;
-                    dat_2_o <= tx_lane_2; dat_3_o <= tx_lane_3;
+                    dat_o[0] <= tx_lane_0; dat_o[1] <= tx_lane_1;
+                    dat_o[2] <= tx_lane_2; dat_o[3] <= tx_lane_3;
                     // bit_cnt
                     if (last_bit)
                         bit_cnt <= 0;
@@ -409,13 +408,13 @@ always @(posedge sd_clk or negedge rstn) begin
                 if (tx_en) begin
                     // data lane drive
                     if (~dat_trans_width) begin // 1-bit
-                        dat_0_o <= crc0[`CRC_LEN - 1 - byte_cnt[3:0]];
+                        dat_o[0] <= crc0[`CRC_LEN - 1 - byte_cnt[3:0]];
                     end
                     else begin // 4-bit
-                        dat_0_o <= crc0[`CRC_LEN - 1 - byte_cnt[3:0]];
-                        dat_1_o <= crc1[`CRC_LEN - 1 - byte_cnt[3:0]];
-                        dat_2_o <= crc2[`CRC_LEN - 1 - byte_cnt[3:0]];
-                        dat_3_o <= crc3[`CRC_LEN - 1 - byte_cnt[3:0]];
+                        dat_o[0] <= crc0[`CRC_LEN - 1 - byte_cnt[3:0]];
+                        dat_o[1] <= crc1[`CRC_LEN - 1 - byte_cnt[3:0]];
+                        dat_o[2] <= crc2[`CRC_LEN - 1 - byte_cnt[3:0]];
+                        dat_o[3] <= crc3[`CRC_LEN - 1 - byte_cnt[3:0]];
                     end
                     // cnt
                     byte_cnt[3:0] <= byte_cnt[3:0] + 1;
@@ -425,11 +424,10 @@ always @(posedge sd_clk or negedge rstn) begin
                 if (tx_en) begin
                     // data lane drive
                     if (~dat_trans_width) begin // 1-bit
-                        dat_0_o <= 1'b1;
+                        dat_o[0] <= 1'b1;
                     end
                     else begin // 4-bit
-                        dat_0_o <= 1'b1; dat_1_o <= 1'b1;
-                        dat_2_o <= 1'b1; dat_3_o <= 1'b1;
+                        dat_o[3:0] <= 4'hf;
                     end
                     // cnt
                     bit_cnt <= 0; // init ncrc cnt
@@ -438,13 +436,10 @@ always @(posedge sd_clk or negedge rstn) begin
             TX_WAIT_NCRC: begin
                 // release data lane
                 if (~dat_trans_width) begin
-                    dat_0_o <= 1'b1; dat_0_oe <= 1'b0;
+                    dat_o[0] <= 1'b1; dat_oe[0] <= 1'b0;
                 end
                 else begin
-                    dat_0_o <= 1'b1; dat_0_oe <= 1'b0;
-                    dat_1_o <= 1'b1; dat_1_oe <= 1'b0;
-                    dat_2_o <= 1'b1; dat_2_oe <= 1'b0;
-                    dat_3_o <= 1'b1; dat_3_oe <= 1'b0;
+                    dat_o[3:0] <= 4'hf; dat_oe[3:0] <= 4'h0;
                 end
                 // cnt
                 if (rx_en) begin
@@ -519,7 +514,7 @@ always @(posedge sd_clk or negedge rstn)
     if (~rstn)
         tx_crc_status <= 3'b000;
     else if ((st_curr == TX_CRC_STS_DATA) && (rx_en == 1'b1))
-        tx_crc_status <= {tx_crc_status[1:0], dat_0_i};
+        tx_crc_status <= {tx_crc_status[1:0], dat_i_sts};
 // CLK pause logic
 //always @(posedge sd_clk or negedge rstn)
 //    if (~rstn)
@@ -543,12 +538,12 @@ always @(posedge sd_clk or negedge rstn)
         else if (st_curr == RX_CRC)
             if (rx_en)
                 if (~dat_trans_width) begin // 1-bit
-                    if (dat_0_i != crc0[byte_cnt[3:0]])
+                    if (dat_i_1b != crc0[byte_cnt[3:0]])
                         rx_crc_err <= 1;
                 end
                 else begin // 4-bit
-                    if ((dat_0_i != crc0[byte_cnt[3:0]]) || (dat_1_i != crc1[byte_cnt[3:0]]) ||
-                        (dat_2_i != crc2[byte_cnt[3:0]]) || (dat_3_i != crc3[byte_cnt[3:0]]))
+                    if ((dat_i_4b[0] != crc0[byte_cnt[3:0]]) || (dat_i_4b[1] != crc1[byte_cnt[3:0]]) ||
+                        (dat_i_4b[2] != crc2[byte_cnt[3:0]]) || (dat_i_4b[3] != crc3[byte_cnt[3:0]]))
                         rx_crc_err <= 1;
                 end
 // crc_rst
@@ -557,10 +552,10 @@ assign crc0_din_en = (st_curr == RX_DATA_BYTE && rx_en == 1) || (st_curr == TX_D
 assign crc1_din_en = dat_trans_width & crc0_din_en;
 assign crc2_din_en = crc1_din_en;
 assign crc3_din_en = crc1_din_en;
-assign crc0_din = (st_curr == RX_DATA_BYTE) ? dat_0_i : tx_lane_0;
-assign crc1_din = (st_curr == RX_DATA_BYTE) ? dat_1_i : tx_lane_1;
-assign crc2_din = (st_curr == RX_DATA_BYTE) ? dat_2_i : tx_lane_2;
-assign crc3_din = (st_curr == RX_DATA_BYTE) ? dat_3_i : tx_lane_3;
+assign crc0_din = (st_curr == RX_DATA_BYTE) ? dat_i_sts   : tx_lane_0;
+assign crc1_din = (st_curr == RX_DATA_BYTE) ? dat_i_4b[1] : tx_lane_1;
+assign crc2_din = (st_curr == RX_DATA_BYTE) ? dat_i_4b[2] : tx_lane_2;
+assign crc3_din = (st_curr == RX_DATA_BYTE) ? dat_i_4b[3] : tx_lane_3;
 // crc dat lane 0
 sdio_crc16 u_crc0 (
     .rstn(rstn),
