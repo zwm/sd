@@ -10,7 +10,7 @@ module sdio_dat (
     input blk_gap_stop, // 1: stop, 0: continue, no need continue reg???
     input blk_gap_clk_en, // 1: stop, 0: continue, no need continue reg???
     input blk_gap_read_wait_en, // 1: drive DAT[2] low to stop card output
-    input pad_sel, // single bit mode, SD_DAT0~3 select
+    input [1:0] pad_sel, // single bit mode, SD_DAT0~3 select
     output reg dat_crc_err_event,
     output reg dat_end_err_event,
     output blk_gap_event, // block gap can trigger irq
