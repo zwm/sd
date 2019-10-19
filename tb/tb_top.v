@@ -34,12 +34,14 @@ pullup(sdio_pad_dat[2]);
 pullup(sdio_pad_dat[3]);
 // inc
 `include "tb_define.v"
+`include "tb_log.v"
 `include "tb_lib.v"
 // main
 initial begin
     sys_init;
     #50_000;
-    wr_reg(28, 8'h01); // set SdClkEn 1
+    main_loop;
+    //wr_reg(28, 8'h01); // set SdClkEn 1
     //wr_reg(8, 8'h0e); // set resp type, 48-bit
     //set_cmd_idx(6'h00);
     //wr_blk_1b(512, 2);
@@ -47,7 +49,7 @@ initial begin
     //wr_blk(0, 512, 2); // 1-bit
     //wr_blk(1, 512, 2); // 4-bit
     //wr_rd_blk(0, 512, 2); // 1-bit
-    wr_rd_blk(0, 512, 2); // 4-bit
+    //wr_rd_blk(0, 512, 2); // 4-bit
     #100_000;
     sim_end = 1;
     #100_000;
