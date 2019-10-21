@@ -3,7 +3,7 @@
 sd_clk_div              0
 cmd_index               00
 resp_type               00 // 00: no response, 01: 136-bit, 10: 48-bit, 11: 48-bit with busy
-cmd_arg                 0000 0000 
+cmd_arg                 1234 5678 
 cmd_idx_check_en        1
 cmd_crc_check_en        1
 ---------- response ----------------------------
@@ -55,7 +55,7 @@ cmd_timeout_err         0
 sd_clk_div              0
 cmd_index               00
 resp_type               00 // 00: no response, 01: 136-bit, 10: 48-bit, 11: 48-bit with busy
-cmd_arg                 0000 0000 
+cmd_arg                 55aa 00ff 
 cmd_idx_check_en        1
 cmd_crc_check_en        1
 ---------- response ----------------------------

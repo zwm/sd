@@ -1,6 +1,6 @@
 // global var
 reg [7:0] log_mem [2**16-1:0]; // 64KB
-integer task_end, task_cnt, err_cnt, cmp_cnt;
+integer task_end, task_cnt, err_cnt, err_cnt_flag, cmp_cnt;
 reg [7:0] log_clk_div;
 reg [5:0] log_cmd_idx;
 reg [1:0] log_resp_type;
@@ -27,9 +27,9 @@ reg log_stop_at_blk_gap;
 reg [7:0] log_dat_timeout_cnt;
 reg [31:0] log_resp_wait;
 reg [31:0] log_resp_busy;
-reg [31:0] log_data_rd_wait;
-reg [31:0] log_data_wr_crc_wait;
-reg [31:0] log_data_wr_busy;
+reg [31:0] log_dat_rd_wait;
+reg [31:0] log_dat_wr_crc_wait;
+reg [31:0] log_dat_wr_busy;
 reg [31:0] log_dma_rd_dly;
 reg [31:0] log_dma_wr_dly;
 reg [4:0] log_norm_irq_en;
@@ -37,11 +37,11 @@ reg [6:0] log_err_irq_en;
 reg log_err_irq;
 reg log_card_irq;
 reg log_blk_gap_event;
-reg log_data_complete;
+reg log_dat_complete;
 reg log_cmd_complete;
-reg log_data_end_bit_err;
-reg log_data_crc_err;
-reg log_data_timeout_err;
+reg log_dat_end_bit_err;
+reg log_dat_crc_err;
+reg log_dat_timeout_err;
 reg log_cmd_idx_err;
 reg log_cmd_end_bit_err;
 reg log_cmd_crc_err;
@@ -51,7 +51,7 @@ reg log_cmd_timeout_err;
 task main_loop;
     integer fp, ret, i, addr;
     begin
-        task_end = 0; task_cnt = 0; err_cnt = 0; cmp_cnt = 0;
+        task_end = 0; task_cnt = 0; err_cnt = 0; cmp_cnt = 0; err_cnt_flag = 0;
         // File Open
         fp = $fopen({tb_top.case_dir, "case_example.dat"}, "r");
         // Task Loop
@@ -76,7 +76,7 @@ endtask
 task log_parse;
     input integer fp;
     integer ret, i, j, k, tmp;
-    reg [64*8-1:0] s;
+    reg [80*8-1:0] s;
     begin
         // read title
         ret = $fgets (s, fp); // task label
@@ -93,8 +93,8 @@ task log_parse;
             ret = $fgets (s, fp); // command label
             ret = $fscanf(fp, "%s %h", s, log_clk_div); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h", s, log_cmd_idx); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %b", s, log_resp_type); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %h %h", s, log_cmd_arg[31:16], log_cmd_arg[15:0]); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %b", s, log_resp_type); ret = $fgets(s, fp); $display("resp_type fgets: %s", s);
+            ret = $fscanf(fp, "%s %h %h", s, log_cmd_arg[31:16], log_cmd_arg[15:0]); ret = $fgets(s, fp); $display("cmd_arg fgets: %s", s);
             ret = $fscanf(fp, "%s %h", s, log_cmd_idx_check_en); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h", s, log_cmd_crc_check_en); ret = $fgets(s, fp);
             // response
@@ -126,9 +126,9 @@ task log_parse;
             ret = $fgets(s, fp); // get time label
             ret = $fscanf(fp, "%s %d", s, log_resp_wait); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %d", s, log_resp_busy); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %d", s, log_data_rd_wait); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %d", s, log_data_wr_crc_wait); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %d", s, log_data_wr_busy); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %d", s, log_dat_rd_wait); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %d", s, log_dat_wr_crc_wait); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %d", s, log_dat_wr_busy); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %d", s, log_dma_rd_dly); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %d", s, log_dma_wr_dly); ret = $fgets(s, fp);
             // check
@@ -138,11 +138,11 @@ task log_parse;
             ret = $fscanf(fp, "%s %h", s, log_err_irq); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h", s, log_card_irq); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h", s, log_blk_gap_event); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %h", s, log_data_complete); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %h", s, log_dat_complete); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h", s, log_cmd_complete); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %h", s, log_data_end_bit_err); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %h", s, log_data_crc_err); ret = $fgets(s, fp);
-            ret = $fscanf(fp, "%s %h", s, log_data_timeout_err); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %h", s, log_dat_end_bit_err); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %h", s, log_dat_crc_err); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %h", s, log_dat_timeout_err); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h", s, log_cmd_idx_err); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h", s, log_cmd_end_bit_err); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h", s, log_cmd_crc_err); ret = $fgets(s, fp);
@@ -159,19 +159,88 @@ task log_parse;
         end
     end
 endtask
-// start_task
-task start_task;
+wire [7:0] log_trans_mode;
+assign log_trans_mode[7] = 1'b0;
+assign log_trans_mode[6] = log_bus_width;
+assign log_trans_mode[5] = log_dat_direction;
+assign log_trans_mode[4] = log_dat_present;
+assign log_trans_mode[3] = log_cmd_idx_check_en;
+assign log_trans_mode[2] = log_cmd_crc_check_en;
+assign log_trans_mode[1:0] = log_resp_type;
+wire [7:0] log_blk_gap_ctrl;
+assign log_blk_gap_ctrl[7:4] = 4'h0;
+assign log_blk_gap_ctrl[3] = 0;
+assign log_blk_gap_ctrl[2] = log_blk_gap_read_wait_en;
+assign log_blk_gap_ctrl[1] = log_blk_gap_clk_en;
+assign log_blk_gap_ctrl[0] = log_stop_at_blk_gap;
+// reg_conf
+task reg_conf;
     begin
+        // reset all
+        set_rst_all;
+        // set reg
+        set_sd_clk_div(log_clk_div);
+        set_cmd_arg(log_cmd_arg);
+        set_trans_mode(log_trans_mode);
+        set_blk_size(log_blk_size);
+        set_blk_cnt(log_blk_cnt);
+        set_mram_sel(log_dma_mram_sel);
+        set_dma_saddr(log_dma_saddr);
+        set_dma_len(log_dma_len);
+        set_blk_gap(log_blk_gap_ctrl);
+        set_timeout_cnt(log_dat_timeout_cnt);
+        set_norm_irq_en(log_norm_irq_en);
+        set_err_irq_en(log_err_irq_en);
+        // enable sd_clk
+        set_sd_clk_en(1);
+        // clear flag
+        err_irq_clr;
+        norm_irq_clr;
+        // start cmd
+        set_cmd_idx(log_cmd_idx);
     end
 endtask
 // wait_task
 task wait_task;
     begin
+        if (log_dat_present == 0)
+            wait_cmd;
+        else
+            wait_dat;
     end
 endtask
 // check_cmd
-task check_flag;
+task check_1bit;
+    input [15*8-1:0] s;
+    input hw_val, log_val;
+    output err;
     begin
+        if (hw_val !== log_val) begin
+            $display("%t, item: %s, hw_val: %0d, log_val: %0d, check failed!", $time, s, hw_val, log_val);
+            err = 1;
+        end
+        else begin
+            $display("%t, item: %s, hw_val: %0d, log_val: %0d, check pass.", $time, s, hw_val, log_val);
+            err = 0;
+        end
+    end
+endtask
+// check_flag;
+task check_flag;
+    reg err;
+    begin
+        check_1bit("err_irq", `SDIO_TOP.u2_reg.err_irq, log_err_irq, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("card_irq", `SDIO_TOP.u2_reg.card_irq, log_card_irq, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("blk_gap_event", `SDIO_TOP.u2_reg.blk_gap_irq, log_blk_gap_event, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("dat_complete", `SDIO_TOP.u2_reg.dat_complete_irq, log_dat_complete, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("cmd_complete", `SDIO_TOP.u2_reg.cmd_complete_irq, log_cmd_complete, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("dat_end_bit_err", `SDIO_TOP.u2_reg.dat_end_err, log_dat_end_bit_err, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("dat_crc_err", `SDIO_TOP.u2_reg.dat_crc_err, log_dat_crc_err, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("dat_timeout_err", `SDIO_TOP.u2_reg.dat_timeout_err, log_dat_timeout_err, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("cmd_idx_err", `SDIO_TOP.u2_reg.cmd_index_err, log_cmd_idx_err, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("cmd_end_bit_err", `SDIO_TOP.u2_reg.cmd_end_err, log_cmd_end_bit_err, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("cmd_crc_err", `SDIO_TOP.u2_reg.cmd_crc_err, log_cmd_crc_err, err); err_cnt_flag = err_cnt_flag + err;
+        check_1bit("cmd_timeout_err", `SDIO_TOP.u2_reg.cmd_timeout_err, log_cmd_timeout_err, err); err_cnt_flag = err_cnt_flag + err;
     end
 endtask
 // data_checker;
@@ -189,7 +258,7 @@ task task_proc;
             fork
                 // driver
                 begin
-                    start_task;
+                    reg_conf;
                     wait_task;
                     check_flag;
                 end

@@ -49,24 +49,8 @@ task rd_reg;
         rdata = reg_rdata;
     end
 endtask
-// set_dma_start_addr
-task set_dma_start_addr;
-    input [15:0] val;
-    begin
-        wr_reg(130, val[7:0]);
-        wr_reg(131, val[15:8]);
-    end
-endtask
-// set_dma_start_addr
-task set_dma_len;
-    input [15:0] val;
-    begin
-        wr_reg(132, val[7:0]);
-        wr_reg(133, val[15:8]);
-    end
-endtask
-// set_rsp_typ
-task set_rsp_typ;
+// set_resp_type
+task set_resp_type;
     input [1:0] val;
     reg [7:0] tmp;
     begin
@@ -105,6 +89,13 @@ task set_dat_pres;
         wr_reg(8, tmp);
     end
 endtask
+// set_trans_mode
+task set_trans_mode;
+    input [7:0] val;
+    begin
+        wr_reg(8, val);
+    end
+endtask
 // set_cmd_idx
 task set_cmd_idx;
     input [5:0] val;
@@ -128,6 +119,60 @@ task set_blk_cnt;
         wr_reg(3, val[15:8]);
     end
 endtask
+// set_sd_clk_en
+task set_sd_clk_en;
+    input val;
+    begin
+        wr_reg(28, val);
+    end
+endtask
+// set_sd_clk_div
+task set_sd_clk_div;
+    input [7:0] val;
+    begin
+        wr_reg(29, val);
+    end
+endtask
+// norm_irq_clr
+task norm_irq_clr;
+    begin
+        wr_reg(32, 8'h1f);
+    end
+endtask
+// err_flag_clr
+task err_irq_clr;
+    begin
+        wr_reg(33, 8'h7f);
+    end
+endtask
+// set_norm_irq_en
+task set_norm_irq_en;
+    input [7:0] val;
+    begin
+        wr_reg(34, val);
+    end
+endtask
+// set_err_irq_en
+task set_err_irq_en;
+    input [7:0] val;
+    begin
+        wr_reg(35, val);
+    end
+endtask
+// set_timeout_cnt
+task set_timeout_cnt;
+    input [7:0] val;
+    begin
+        wr_reg(30, val[7:0]);
+    end
+endtask
+// set_rst_all
+task set_rst_all;
+    begin
+        wr_reg(31, 8'h01);
+        wr_reg(31, 8'h00);
+    end
+endtask
 // set_cmd_arg
 task set_cmd_arg;
     input [31:0] val;
@@ -138,11 +183,18 @@ task set_cmd_arg;
         wr_reg(7, val[31:24]);
     end
 endtask
-// get_irq_sts
-task get_irq_sts;
+// get_norm_irq
+task get_norm_irq;
     output [7:0] val;
     begin
         rd_reg(32, val);
+    end
+endtask
+// get_err_irq
+task get_err_irq;
+    output [7:0] val;
+    begin
+        rd_reg(33, val);
     end
 endtask
 // cmd
@@ -151,9 +203,19 @@ task wait_cmd;
     begin
         begin: LP_CHK
             while(1) begin
-                // get sts
-                get_irq_sts(tmp);
-                if (tmp[0] == 1) disable LP_CHK;
+                // cmd_complete
+                get_norm_irq(tmp);
+                if (tmp[0] == 1) begin
+                    $display("%t, cmd_complete irq detected!", $time);
+                    disable LP_CHK;
+                end
+                // cmd_timeout
+                get_err_irq(tmp);
+                if (tmp[0] == 1) begin
+                    $display("%t, cmd_timeout irq detected!", $time);
+                    disable LP_CHK;
+                end
+                // delay
                 repeat(`COMPLETE_POLL_GAP) @(posedge tb_top.sdio_pad_clk);
             end
         end
@@ -165,41 +227,65 @@ task wait_dat;
     begin
         begin: LP_CHK
             while(1) begin
-                // get sts
-                get_irq_sts(tmp);
-                if (tmp[1] == 1) disable LP_CHK;
+                // dat_complete
+                get_norm_irq(tmp);
+                if (tmp[1] == 1) begin
+                    $display("%t, dat_complete irq detected!", $time);
+                    disable LP_CHK;
+                end
+                // dat_timeout
+                get_err_irq(tmp);
+                if (tmp[4] == 1) begin
+                    $display("%t, dat_timeout irq detected!", $time);
+                    disable LP_CHK;
+                end
+                // delay
                 repeat(`COMPLETE_POLL_GAP) @(posedge tb_top.sdio_pad_clk);
             end
         end
     end
 endtask
-// set_sd_clk_div
-task set_sd_clk_div;
+// mram
+task set_mram_sel;
+    input val;
+    reg [7:0] tmp;
+    begin
+        rd_reg(129, tmp);
+        tmp[4] = val;
+        wr_reg(129, tmp);
+    end
+endtask
+// dma_saddr
+task set_dma_saddr;
+    input [15:0] val;
+    begin
+        wr_reg(130, val[7:0]);
+        wr_reg(131, val[15:8]);
+    end
+endtask
+// dma_len
+task set_dma_len;
+    input [15:0] val;
+    begin
+        wr_reg(132, val[7:0]);
+        wr_reg(133, val[15:8]);
+    end
+endtask
+// blk_gap
+task set_blk_gap;
     input [7:0] val;
     begin
-        wr_reg(29, val);
+        wr_reg(27, val[7:0]);
     end
 endtask
-// set_sd_clk_en
-task set_sd_clk_en;
-    input val;
-    begin
-        wr_reg(28, val);
-    end
-endtask
-// irq_flag_clr
-task irq_flag_clr;
-    begin
-        wr_reg(32, 8'h1f);
-    end
-endtask
+// 
 // set_card_blk_size
 task set_card_blk_size;
     input [31:0] val;
     begin
-        irq_flag_clr;
+        norm_irq_clr;
         set_cmd_arg(val);
-        set_rsp_typ(`RSP_NONE);
+        set_resp_type(`RSP_NONE);
         set_cmd_idx(16); // start command
         wait_cmd;
     end
@@ -208,9 +294,9 @@ endtask
 task set_card_blk_cnt;
     input [31:0] val;
     begin
-        irq_flag_clr;
+        norm_irq_clr;
         set_cmd_arg(val);
-        set_rsp_typ(`RSP_NONE);
+        set_resp_type(`RSP_NONE);
         set_cmd_idx(23); // start command
         wait_cmd;
     end
@@ -219,9 +305,9 @@ endtask
 task set_card_bus_width;
     input val;
     begin
-        irq_flag_clr;
+        norm_irq_clr;
         set_cmd_arg(val);
-        set_rsp_typ(`RSP_NONE);
+        set_resp_type(`RSP_NONE);
         set_cmd_idx(11); // start command
         wait_cmd;
     end
@@ -230,9 +316,9 @@ endtask
 task set_card_abort;
     input val;
     begin
-        irq_flag_clr;
+        norm_irq_clr;
         set_cmd_arg(val);
-        set_rsp_typ(`RSP_NONE);
+        set_resp_type(`RSP_NONE);
         set_cmd_idx(12); // start command
         wait_cmd;
     end
@@ -241,9 +327,9 @@ endtask
 task set_card_rst;
     input val;
     begin
-        irq_flag_clr;
+        norm_irq_clr;
         set_cmd_arg(val);
-        set_rsp_typ(`RSP_NONE);
+        set_resp_type(`RSP_NONE);
         set_cmd_idx(0); // start command
         wait_cmd;
     end
@@ -279,7 +365,7 @@ task wr_blk;
     input [31:0] blk_cnt;
     begin
         // dma
-        set_dma_start_addr(16'd0);
+        set_dma_saddr(16'd0);
         set_dma_len(16'd1023);
         // set card
         set_card_rst(1);
@@ -300,7 +386,7 @@ task wr_blk;
         set_trans_dir(`TRANS_DIR_WR);
         // start
         cmd_multiple_wr;
-        wait_dat; irq_flag_clr;
+        wait_dat; norm_irq_clr;
     end
 endtask
 // wr_rd_blk
@@ -310,7 +396,7 @@ task wr_rd_blk;
     input [31:0] blk_cnt;
     begin
         // dma
-        set_dma_start_addr(16'd0);
+        set_dma_saddr(16'd0);
         set_dma_len(16'd1023);
         // set card
         set_card_rst(1);
@@ -331,7 +417,7 @@ task wr_rd_blk;
         set_trans_dir(`TRANS_DIR_WR);
         // start
         cmd_multiple_wr;
-        wait_dat; irq_flag_clr;
+        wait_dat; norm_irq_clr;
         // gap
         repeat (100) @(posedge sd_clk);
         // read
@@ -345,7 +431,7 @@ task wr_rd_blk;
         set_trans_dir(`TRANS_DIR_RD);
         // start
         cmd_multiple_rd;
-        wait_dat; irq_flag_clr;
+        wait_dat; norm_irq_clr;
     end
 endtask
 
