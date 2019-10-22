@@ -4,6 +4,9 @@ module sd_card (
     inout pad_cmd,
     inout [3:0] pad_dat
 );
+// macro
+//`define SD_MEM mem                  // local mem
+`define SD_MEM `TB_TOP.log_mem      // log mem
 // reg [7:0] mem [2^16-1:0]; // using 2^16 memory
 reg [7:0] mem [2**16-1:0]; // using 2^16 memory, must using "**" instead of "^"
 wire sd_clk, cmd_i; reg cmd_o, cmd_oe;
@@ -46,12 +49,12 @@ wire [5:0] rx_index;
 wire [31:0] rx_arg;
 wire [6:0] rx_crc;
 wire rx_end;
-reg [31:0] resp_len, resp_wait, resp_busy;
-reg resp_trans;
-reg [5:0] resp_index;
-reg [119:0] resp_dat;
-reg [6:0] resp_crc;
-reg resp_end;
+wire [31:0] resp_len, resp_wait, resp_busy;
+wire resp_trans;
+wire [5:0] resp_index;
+wire [119:0] resp_dat;
+wire [6:0] resp_crc;
+wire resp_end;
 wire [135:0] resp;
 wire cmd_trans;
 wire [5:0] cmd_index;
@@ -63,8 +66,8 @@ assign cmd_index = cmd_dat[45:40];
 assign cmd_arg = cmd_dat[39:8];
 assign cmd_crc = cmd_dat[7:1];
 assign cmd_end = cmd_dat[0];
-reg [15:0] block_size, block_count;
-reg bus_width;
+wire [15:0] block_size, block_count;
+wire bus_width;
 // cmd
 wire cmd_rx_end = (cmd_rx_st == CMD_RX_END);
 wire cmd0  = cmd_rx_end == 1 && cmd_index == 0; // reset
@@ -76,67 +79,79 @@ wire cmd18 = cmd_rx_end == 1 && cmd_index == 18;
 wire cmd23 = cmd_rx_end == 1 && cmd_index == 23; // block_count
 wire cmd24 = cmd_rx_end == 1 && cmd_index == 24;
 wire cmd25 = cmd_rx_end == 1 && cmd_index == 25;
-// cmd parse
-always @(posedge sd_clk or negedge rstn)
-    if (~rstn) begin
-        block_size <= 0;
-        block_count <= 0;
-        bus_width <= 0;
-    end
-    else begin
-        // CMD16, block_size
-        if (cmd16)
-            block_size <= cmd_arg[15:0];
-        // CMD23, block_count
-        if (cmd23)
-            block_count <= cmd_arg[15:0];
-        // CMD11
-        if (cmd11)
-            bus_width <= cmd_arg[0];
-    end
+// all from log
+assign block_size = `TB_TOP.log_blk_size;
+assign block_count = `TB_TOP.log_blk_cnt;
+assign bus_width = `TB_TOP.log_bus_width;
+//// cmd parse
+//always @(posedge sd_clk or negedge rstn)
+//    if (~rstn) begin
+//        block_size <= 0;
+//        block_count <= 0;
+//        bus_width <= 0;
+//    end
+//    else begin
+//        // CMD16, block_size
+//        if (cmd16)
+//            block_size <= cmd_arg[15:0];
+//        // CMD23, block_count
+//        if (cmd23)
+//            block_count <= cmd_arg[15:0];
+//        // CMD11
+//        if (cmd11)
+//            bus_width <= cmd_arg[0];
+//    end
 // resp
 assign resp = (resp_len == 48) ? {1'b0, resp_trans, resp_index, resp_dat[ 31:0], resp_crc, resp_end, 88'h0} :
                                  {1'b0, resp_trans, resp_index, resp_dat[119:0], resp_crc, resp_end};
 wire cmd_rx_start = (cmd_rx_st == CMD_RX_IDLE) && (cmd_i == 0);
-// file 
-initial begin: BLK_CMD_FILE
-    // open file
-    reg [64*8-1:0] s;
-    integer fp, ret;
-    @(posedge `TOP_RSTN);
-    // init
-    fp = $fopen({`TOP_CASE_DIR, "card_resp.dat"}, "r");
-    begin: LP_SIM
-        while(1) begin
-            @(negedge sd_clk);
-            // sim_end check
-            if (`TOP_SIM_END == 1) begin
-                disable LP_SIM;
-            end
-            // new command
-            if (cmd_rx_start) begin
-                ret = $fgets(s, fp); // skip comment
-                $display("%t, File: card_resp, Comment: %s", $time, s);
-                ret = $fscanf(fp, "%s %d", s, resp_len);
-                if (resp_len == 0) begin
-                    resp_wait = 0; resp_busy = 0; resp_trans = 0; // init
-                    $display("%t, File: card_resp, no response command", $time);
-                end
-                else begin
-                    ret = $fscanf(fp, "%s %d", s, resp_wait);
-                    ret = $fscanf(fp, "%s %d", s, resp_busy);
-                    ret = $fscanf(fp, "%s %h", s, resp_trans);
-                    ret = $fscanf(fp, "%s %h", s, resp_index);
-                    ret = $fscanf(fp, "%s %h", s, resp_dat);
-                    ret = $fscanf(fp, "%s %h", s, resp_crc);
-                    ret = $fscanf(fp, "%s %h", s, resp_end);
-                end
-            end
-        end
-    end
-    // close file
-    $fclose(fp);
-end
+//// file 
+//initial begin: BLK_CMD_FILE
+//    // open file
+//    reg [64*8-1:0] s;
+//    integer fp, ret;
+//    @(posedge `TOP_RSTN);
+//    // init
+//    fp = $fopen({`TOP_CASE_DIR, "card_resp.dat"}, "r");
+//    begin: LP_SIM
+//        while(1) begin
+//            @(negedge sd_clk);
+//            // sim_end check
+//            if (`TOP_SIM_END == 1) begin
+//                disable LP_SIM;
+//            end
+//            // new command
+//            if (cmd_rx_start) begin
+//                ret = $fgets(s, fp); // skip comment
+//                $display("%t, File: card_resp, Comment: %s", $time, s);
+//                ret = $fscanf(fp, "%s %d", s, resp_len);
+//                if (resp_len == 0) begin
+//                    resp_wait = 0; resp_busy = 0; resp_trans = 0; // init
+//                    $display("%t, File: card_resp, no response command", $time);
+//                end
+//                else begin
+//                    ret = $fscanf(fp, "%s %d", s, resp_wait);
+//                    ret = $fscanf(fp, "%s %d", s, resp_busy);
+//                    ret = $fscanf(fp, "%s %h", s, resp_trans);
+//                    ret = $fscanf(fp, "%s %h", s, resp_index);
+//                    ret = $fscanf(fp, "%s %h", s, resp_dat);
+//                    ret = $fscanf(fp, "%s %h", s, resp_crc);
+//                    ret = $fscanf(fp, "%s %h", s, resp_end);
+//                end
+//            end
+//        end
+//    end
+//    // close file
+//    $fclose(fp);
+//end
+assign resp_len = `TB_TOP.log_resp_len;
+assign resp_wait = `TB_TOP.log_resp_wait;
+assign resp_busy = `TB_TOP.log_resp_busy;
+assign resp_trans = `TB_TOP.log_resp_trans;
+assign resp_index = `TB_TOP.log_resp_idx;
+assign resp_dat = `TB_TOP.log_resp_dat;
+assign resp_crc = `TB_TOP.log_resp_crc;
+assign resp_end = `TB_TOP.log_resp_end;
 // cmd rx, posedge
 always @(posedge sd_clk or negedge rstn)
     if (~rstn) begin
@@ -230,37 +245,41 @@ wire [15:0] crc0, crc1, crc2, crc3;
 wire rd_crc_en, wr_crc_en;
 wire [3:0] rd_crc_din, wr_crc_din;
 wire dat_blk_req_rd, dat_blk_req_wr;
-reg [31:0] rd_wait_max, crc_wait_max, busy_wait_max;
+wire [31:0] rd_wait_max, crc_wait_max, busy_wait_max;
 wire [2:0] bit_cnt_max;
 assign bit_cnt_max = bus_width ? 3'd1 : 3'd7;
-// file 
-initial begin: BLK_DAT_FILE
-    // open file
-    reg [64*8-1:0] s;
-    integer fp, ret;
-    @(posedge `TOP_RSTN);
-    fp = $fopen({`TOP_CASE_DIR, "card_dat.dat"}, "r");
-    begin: LP_SIM
-        while(1) begin
-            @(posedge sd_clk);
-            // sim_end check
-            if (`TOP_SIM_END == 1) begin
-                disable LP_SIM;
-            end
-            // new command
-            if (dat_blk_req_rd | dat_blk_req_wr) begin
-                ret = $fgets(s, fp); // skip comment
-                $display("%t, File: card_dat, Comment: %s", $time, s);
-                ret = $fscanf(fp, "%s %d", s, rd_wait_max);
-                ret = $fscanf(fp, "%s %d", s, crc_wait_max);
-                ret = $fscanf(fp, "%s %d", s, busy_wait_max);
-                $display("%t, File: card_dat, rd_wait: %d, crc_wait: %d, busy_wait: %d", $time, rd_wait_max, crc_wait_max, busy_wait_max);
-            end
-        end
-    end
-    // close file
-    $fclose(fp);
-end
+// new added
+assign rd_wait_max = `TB_TOP.log_dat_rd_wait;
+assign crc_wait_max = `TB_TOP.log_dat_wr_crc_wait;
+assign busy_wait_max = `TB_TOP.log_dat_wr_busy;
+//// file 
+//initial begin: BLK_DAT_FILE
+//    // open file
+//    reg [64*8-1:0] s;
+//    integer fp, ret;
+//    @(posedge `TOP_RSTN);
+//    fp = $fopen({`TOP_CASE_DIR, "card_dat.dat"}, "r");
+//    begin: LP_SIM
+//        while(1) begin
+//            @(posedge sd_clk);
+//            // sim_end check
+//            if (`TOP_SIM_END == 1) begin
+//                disable LP_SIM;
+//            end
+//            // new command
+//            if (dat_blk_req_rd | dat_blk_req_wr) begin
+//                ret = $fgets(s, fp); // skip comment
+//                $display("%t, File: card_dat, Comment: %s", $time, s);
+//                ret = $fscanf(fp, "%s %d", s, rd_wait_max);
+//                ret = $fscanf(fp, "%s %d", s, crc_wait_max);
+//                ret = $fscanf(fp, "%s %d", s, busy_wait_max);
+//                $display("%t, File: card_dat, rd_wait: %d, crc_wait: %d, busy_wait: %d", $time, rd_wait_max, crc_wait_max, busy_wait_max);
+//            end
+//        end
+//    end
+//    // close file
+//    $fclose(fp);
+//end
 // crc
 assign sd_rst = 1'b0;
 assign crc_rst = rd_crc_rst | wr_crc_rst;
@@ -330,7 +349,7 @@ wire rd_clk = ~sd_clk; // falling edge
 reg [3:0] rd_st;
 reg [2:0] rd_bit_cnt;
 reg [15:0] rd_byte_cnt, rd_blk_cnt;
-reg [31:0] rd_wait_cnt, rd_addr;
+reg [31:0] rd_wait_cnt, rd_addr, rd_idx;
 localparam RD_IDLE          = 0;
 localparam RD_WAIT          = 1;
 localparam RD_START         = 2;
@@ -344,14 +363,14 @@ always @(posedge rd_clk or negedge rstn)
         rd_bit_cnt <= 0; rd_byte_cnt <= 0;
         rd_blk_cnt <= 0; rd_wait_cnt <= 0;
         rd_dat_o <= 0; rd_dat_oe <= 0;
-        rd_addr <= 0;
+        rd_addr <= 0; rd_idx <= 0;
     end
     else if (cmd0 | cmd12) begin
         rd_st <= RD_IDLE;
         rd_bit_cnt <= 0; rd_byte_cnt <= 0;
         rd_blk_cnt <= 0; rd_wait_cnt <= 0;
         rd_dat_o <= 0; rd_dat_oe <= 0;
-        rd_addr <= 0;
+        rd_addr <= 0; rd_idx <= 0;
     end
     else begin
         case (rd_st)
@@ -360,7 +379,7 @@ always @(posedge rd_clk or negedge rstn)
                 rd_bit_cnt <= 0; rd_byte_cnt <= 0; rd_wait_cnt <= 0;
                 if (cmd17 || cmd18) begin // single block
                     rd_st <= RD_WAIT;
-                    rd_addr <= cmd_arg;
+                    rd_addr <= cmd_arg; rd_idx <= 0;
                     if (cmd17) // single
                         rd_blk_cnt <= 1;
                     else if (cmd18) // multiple
@@ -393,7 +412,7 @@ always @(posedge rd_clk or negedge rstn)
                 // cnt
                 if (rd_bit_cnt == bit_cnt_max) begin
                     rd_bit_cnt <= 0;
-                    rd_addr <= rd_addr + 1;
+                    rd_addr <= rd_addr + 1; rd_idx <= rd_idx + 1;
                     if ((rd_byte_cnt + 1) == block_size) begin
                         rd_st <= RD_CRC;
                         rd_byte_cnt <= 0;
@@ -407,20 +426,20 @@ always @(posedge rd_clk or negedge rstn)
                 end
                 // output
                 if (~bus_width) begin
-                    rd_dat_o[0] <= mem[rd_addr][7 - rd_bit_cnt]; // reverse ???
+                    rd_dat_o[0] <= `SD_MEM[rd_idx][7 - rd_bit_cnt]; // reverse ???
                     rd_dat_oe[0] <= 1'b1;
                 end
                 else begin
                     if (~rd_bit_cnt[0]) begin
-                        rd_dat_o <= mem[rd_addr[15:0]][7:4];
+                        rd_dat_o <= `SD_MEM[rd_idx][7:4];
                         rd_dat_oe <= 4'hf;
                     end
                     else begin
-                        rd_dat_o <= mem[rd_addr[15:0]][3:0];
+                        rd_dat_o <= `SD_MEM[rd_idx][3:0];
                         rd_dat_oe <= 4'hf;
                     end
                 end
-                if (rd_bit_cnt == 0) rd_data <= mem[rd_addr];
+                if (rd_bit_cnt == 0) rd_data <= `SD_MEM[rd_idx];
             end
             RD_CRC: begin
                 // cnt
@@ -480,7 +499,7 @@ reg [2:0] wr_bit_cnt;
 reg [15:0] wr_byte_cnt, wr_blk_cnt;
 reg [31:0] wr_wait_cnt, wr_addr;
 reg [7:0] wr_byte;
-reg wr_crc_err;
+reg wr_crc_err, wr_en, wr_en_d1; wire wr_en_pulse;
 wire [2:0] wr_crc_sts;
 localparam WR_IDLE          = 0;
 localparam WR_START         = 1;
@@ -492,6 +511,14 @@ localparam WR_CRC_START     = 7;
 localparam WR_CRC_STS       = 8;
 localparam WR_CRC_END       = 9;
 localparam WR_CRC_BUSY      = 10;
+always @(posedge wr_clk or negedge rstn)
+    if (~rstn) begin
+        wr_en_d1 <= 0;
+    end
+    else begin
+        wr_en_d1 <= wr_en;
+    end
+assign wr_en_pulse = wr_en & (~wr_en_d1); // wr_en may always '1'!!!
 // main
 always @(posedge wr_clk or negedge rstn)
     if (~rstn) begin
@@ -499,14 +526,14 @@ always @(posedge wr_clk or negedge rstn)
         wr_bit_cnt <= 0; wr_byte_cnt <= 0; 
         wr_blk_cnt <= 0; wr_wait_cnt <= 0;
         wr_dat_o <= 0; wr_dat_oe <= 0;
-        wr_addr <= 0; wr_byte <= 0;
+        wr_addr <= 0; wr_byte <= 0; wr_en <= 0;
     end
     else if (cmd0 | cmd12) begin
         wr_st <= WR_IDLE; wr_data <= 0;
         wr_bit_cnt <= 0; wr_byte_cnt <= 0; 
         wr_blk_cnt <= 0; wr_wait_cnt <= 0;
         wr_dat_o <= 0; wr_dat_oe <= 0;
-        wr_addr <= 0; wr_byte <= 0;
+        wr_addr <= 0; wr_byte <= 0; wr_en <= 0;
     end
     else begin
         case (wr_st)
@@ -564,6 +591,7 @@ always @(posedge wr_clk or negedge rstn)
                 end
                 // mem
                 if (wr_bit_cnt == bit_cnt_max) begin
+                    wr_en <= 1;
                     if (~bus_width) begin
                         mem[wr_addr[15:0]] <= {wr_byte[7:1], dat_i[0]};
                         wr_data <= {wr_byte[7:1], dat_i[0]}; // debug only
@@ -572,6 +600,9 @@ always @(posedge wr_clk or negedge rstn)
                         mem[wr_addr[15:0]] <= {wr_byte[7:4], dat_i[3:0]};
                         wr_data <= {wr_byte[7:4], dat_i[3:0]}; // debug only
                     end
+                end
+                else begin
+                    wr_en <= 0;
                 end
             end
             WR_CRC: begin

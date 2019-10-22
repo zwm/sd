@@ -41,42 +41,46 @@ always @(posedge bus_clk)
     if (bus_wr_dly[RD_DLY_CYC - 1]) begin
         mem[bus_addr] <= bus_wdata;
     end
-wire new_tx_cmd = (tb_top.u0_sdio.cmd_start == 1) && (tb_top.u0_sdio.dat_present == 1) && (tb_top.u0_sdio.dat_trans_dir == 0);
-wire tx_blk_end = (tb_top.u0_sdio.u5_dat.blk_gap_event == 1) && (tb_top.u0_sdio.dat_trans_dir == 0);
-// mem init
-initial begin: SIM_SD_DMA
-    integer fp, ret, i, addr;
-    reg [64*8-1:0] s;
-    reg [15:0] dat_len, dma_start_addr, dma_len;
-    @(posedge tb_top.rstn);
-    fp = $fopen({tb_top.case_dir, "dma_dat.dat"}, "r");
-    begin: LP_SIM
-        while(1) begin
-            @(negedge tb_top.sd_clk);
-            // sim_end check
-            if (tb_top.sim_end == 1) begin
-                disable LP_SIM;
-            end
-            // new command
-            if (new_tx_cmd | tx_blk_end) begin
-                ret = $fgets(s, fp); // skip comment
-                $display("%t, File: dma_dat, Comment: %s", $time, s);
-                ret = $fscanf(fp, "%h %h %h", dat_len, dma_start_addr, dma_len);
-                $display("%t, File: dma_dat, dat_len: %h, dma_start_addr: %h, dma_len: %h", $time, dat_len, dma_start_addr, dma_len);
-                addr = 0;
-                for (i = 0; i < dat_len[15:0]; i = i + 1) begin
-                    ret = $fscanf(fp, "%h", s[7:0]);
-                    mem[dma_start_addr[15:0] + addr[15:0]] = s[7:0];
-                    //$display("addr: %h, dat: %h, mem: %h", addr, s[7:0], mem[dma_start_addr[15:0] + addr[15:0]]);
-                    if (addr[15:0] == dma_len[15:0] - 1) addr = 0;
+wire new_tx_cmd = (`SDIO_TOP.cmd_start == 1) && (`SDIO_TOP.dat_present == 1) && (`SDIO_TOP.dat_trans_dir == 0);
+wire tx_blk_end = (`SDIO_TOP.u5_dat.blk_gap_event == 1) && (`SDIO_TOP.dat_trans_dir == 0);
+// dma
+wire [15:0] dma_saddr = `TB_TOP.log_dma_saddr[15:0];
+wire [15:0] dma_len = `TB_TOP.log_dma_len[15:0];
+wire [15:0] blk_size = `TB_TOP.log_blk_size[15:0];
+wire [15:0] blk_cnt = `TB_TOP.log_blk_cnt[15:0];
+// mem filler
+initial begin: SIM_DMA_FILLER
+    // var
+    integer i; reg[15:0] addr, log_addr;
+    // main
+    while(1) begin
+        @(negedge `SDIO_TOP.sd_clk) begin
+            // new_tx_cmd, fill dma_len
+            if (new_tx_cmd) begin
+                addr = dma_saddr; // init ptr
+                log_addr = 0;
+                for (i = 0; i < dma_len; i = i + 1) begin
+                    // mem
+                    mem[addr] = `TB_TOP.log_mem[log_addr];
+                    // addr
+                    if (addr == (dma_saddr + dma_len - 1)) addr = dma_saddr;
                     else addr = addr + 1;
+                    log_addr = log_addr + 1;
                 end
-                ret = $fgets(s, fp); // must add here to skip "\n"
+            end
+            // tx_blk_end, fill one block
+            if (tx_blk_end) begin
+                for (i = 0; i < blk_size; i = i + 1) begin
+                    // mem
+                    mem[addr] = `TB_TOP.log_mem[log_addr];
+                    // addr
+                    if (addr == (dma_saddr + dma_len - 1)) addr = dma_saddr;
+                    else addr = addr + 1;
+                    log_addr = log_addr + 1;
+                end
             end
         end
     end
-// close file
-$fclose(fp);
 end
 
 endmodule

@@ -21,11 +21,12 @@
 `define TRANS_DIR_WR            0
 `define TRANS_DIR_RD            1
 // inst
+`define TB_TOP                  tb_top
 `define TOP_RSTN                tb_top.rstn
 `define TOP_CASE_DIR            tb_top.case_dir
 `define TOP_SIM_END             tb_top.sim_end
 `define SDIO_TOP                tb_top.u0_sdio
-
-
+`define SDCARD_TOP              tb_top.u1_sdcard
+`define SDDMA_TOP               tb_top.u2_dma
 
 
