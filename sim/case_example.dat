@@ -50,20 +50,20 @@ cmd_end_bit_err         0
 cmd_crc_err             0
 cmd_timeout_err         0
 ---------- data --------------------------------
-// task 1, CMD0
+// task 1, CMD8
 ---------- command -----------------------------
 sd_clk_div              0
-cmd_index               00
-resp_type               00 // 00: no response, 01: 136-bit, 10: 48-bit, 11: 48-bit with busy
+cmd_index               8
+resp_type               10 // 00: no response, 01: 136-bit, 10: 48-bit, 11: 48-bit with busy
 cmd_arg                 55aa 00ff 
 cmd_idx_check_en        1
 cmd_crc_check_en        1
 ---------- response ----------------------------
-resp_len                0 // 0, 48, 136
+resp_len                48 // 0, 48, 136
 resp_trans              0 // 0: right, 1: error
-resp_index              00 
-resp_dat                00 0000 0000 0000 0000 0000  1234 5678
-resp_crc                00
+resp_index              8 
+resp_dat                00 0000 0000 0000 0000 0000  0000 0900
+resp_crc                78
 resp_end                1
 ---------- data/dma ----------------------------
 bus_width               0 // 0: 1-bit, 1: 4-bit
@@ -102,4 +102,237 @@ cmd_end_bit_err         0
 cmd_crc_err             0
 cmd_timeout_err         0
 ---------- data --------------------------------
+// task 2, CMD25, write 2 blocks
+---------- command -----------------------------
+sd_clk_div              0
+cmd_index               25
+resp_type               10 // 00: no response, 01: 136-bit, 10: 48-bit, 11: 48-bit with busy
+cmd_arg                 0000 0000 
+cmd_idx_check_en        1
+cmd_crc_check_en        1
+---------- response ----------------------------
+resp_len                48 // 0, 48, 136
+resp_trans              0 // 0: right, 1: error
+resp_index              25 
+resp_dat                00 0000 0000 0000 0000 0000  1234 5678
+resp_crc                4f
+resp_end                1
+---------- data/dma ----------------------------
+bus_width               0 // 0: 1-bit, 1: 4-bit
+data_present            1
+data_direction          0 // 0: write, 1: read
+blk_size                0200
+blk_cnt                 0002
+dma_mram_sel            0
+dma_start_addr          0000
+dma_len                 0400
+blk_gap_read_wait_en    0
+blk_gap_clk_en          0
+stop_at_blk_gap         0
+data_timeout_cnt        0 // 0: 5.4ms
+---------- time config -------------------------
+resp_wait               40 // timeout: > 64
+resp_busy               0
+data_rd_wait            100 
+data_wr_crc_wait        100
+data_wr_busy            100
+dma_rd_dly              7
+dma_wr_dly              10
+---------- check -------------------------------
+norm_irq_en             1f
+err_irq_en              7f
+err_irq                 0
+card_irq                0
+blk_gap_event           1
+data_complete           1
+cmd_complete            1
+data_end_bit_err        0
+data_crc_err            0
+data_timeout_err        0
+cmd_idx_err             0
+cmd_end_bit_err         0
+cmd_crc_err             0
+cmd_timeout_err         0
+---------- data --------------------------------
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
+30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
+40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f
+60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f
+70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f
+80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
+b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 ca cb cc cd ce cf
+d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df
+e0 e1 e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef
+f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
+30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
+40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f
+60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f
+70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f
+80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
+b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 ca cb cc cd ce cf
+d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df
+e0 e1 e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef
+f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
+30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
+40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f
+60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f
+70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f
+80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
+b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 ca cb cc cd ce cf
+d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df
+e0 e1 e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef
+f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
+30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
+40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f
+60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f
+70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f
+80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
+b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 ca cb cc cd ce cf
+d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df
+e0 e1 e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef
+f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
+// task 3, CMD18, read 2 blocks
+---------- command -----------------------------
+sd_clk_div              0
+cmd_index               18
+resp_type               10 // 00: no response, 01: 136-bit, 10: 48-bit, 11: 48-bit with busy
+cmd_arg                 0000 0000 
+cmd_idx_check_en        1
+cmd_crc_check_en        1
+---------- response ----------------------------
+resp_len                48 // 0, 48, 136
+resp_trans              0 // 0: right, 1: error
+resp_index              18 
+resp_dat                00 0000 0000 0000 0000 0000  1234 5678
+resp_crc                3e
+resp_end                1
+---------- data/dma ----------------------------
+bus_width               0 // 0: 1-bit, 1: 4-bit
+data_present            1
+data_direction          1 // 0: write, 1: read
+blk_size                0200
+blk_cnt                 0002
+dma_mram_sel            0
+dma_start_addr          0000
+dma_len                 0400
+blk_gap_read_wait_en    0
+blk_gap_clk_en          0
+stop_at_blk_gap         0
+data_timeout_cnt        0 // 0: 5.4ms
+---------- time config -------------------------
+resp_wait               40 // timeout: > 64
+resp_busy               0
+data_rd_wait            100 
+data_wr_crc_wait        100
+data_wr_busy            100
+dma_rd_dly              7
+dma_wr_dly              10
+---------- check -------------------------------
+norm_irq_en             1f
+err_irq_en              7f
+err_irq                 0
+card_irq                0
+blk_gap_event           1
+data_complete           1
+cmd_complete            1
+data_end_bit_err        0
+data_crc_err            0
+data_timeout_err        0
+cmd_idx_err             0
+cmd_end_bit_err         0
+cmd_crc_err             0
+cmd_timeout_err         0
+---------- data --------------------------------
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
+30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
+40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f
+60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f
+70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f
+80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
+b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 ca cb cc cd ce cf
+d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df
+e0 e1 e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef
+f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
+30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
+40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f
+60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f
+70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f
+80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
+b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 ca cb cc cd ce cf
+d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df
+e0 e1 e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef
+f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
+30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
+40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f
+60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f
+70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f
+80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
+b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 ca cb cc cd ce cf
+d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df
+e0 e1 e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef
+f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
+20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
+30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
+40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f
+50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f
+60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f
+70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d 7e 7f
+80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f
+90 91 92 93 94 95 96 97 98 99 9a 9b 9c 9d 9e 9f
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
+b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf
+c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 ca cb cc cd ce cf
+d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df
+e0 e1 e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef
+f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
+
 

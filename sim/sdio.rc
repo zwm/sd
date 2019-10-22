@@ -2,7 +2,7 @@ Magic 271485
 Revision Verdi3_L-2016.06-1
 
 ; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
-viewPort 0 28 1853 432 254 65
+viewPort 0 28 1853 813 254 65
 
 ; File list:
 ; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
@@ -16,7 +16,7 @@ signalSpacing 5
 
 ; windowTimeUnit is used for zoom, cursor & marker
 ; waveform viewport range
-zoom 59718410.344047 66982539.514185
+zoom 0.000000 2512950700.000000
 cursor 60770000.000000
 marker 0.000000
 
@@ -25,7 +25,7 @@ marker 0.000000
 ; visible top row signal index
 top 0
 ; marker line index
-markerPos 5
+markerPos 20
 
 ; event list
 ; addEvent event_name event_expression
@@ -52,6 +52,9 @@ addSignal -h 15 -holdScope sd_clk
 addSignal -h 15 -holdScope bus_clk
 addSignal -h 15 -holdScope pad_clk_o
 addSignal -h 15 -holdScope pad_cmd_o
+addSignal -h 15 -UNSIGNED -HEX -holdScope pad_dat_i[3:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope pad_dat_o[3:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope pad_dat_oe[3:0]
 addGroup "CMD"
 addSignal -h 15 /tb_top/u0_sdio/u4_cmd/cmd_start
 addSignal -h 15 -holdScope cmd_busy
@@ -63,8 +66,8 @@ addSignal -h 15 -holdScope dat_busy
 addSignal -h 15 -holdScope dat_done
 addSignal -c ID_PURPLE5 -ls solid -lw 1 -h 15 -UNSIGNED -HEX -holdScope st_curr[4:0]
 addGroup "DMA"
-addSignal -w analog -ds pwc -h 98 -UNSIGNED -HEX /tb_top/u0_sdio/u0_dma/dma_byte[7:0]
-addSignal -w analog -ds pwc -h 98 -UNSIGNED -HEX -holdScope bus_wdata[7:0]
+addSignal -w analog -ds pwc -h 98 -UNSIGNED -HEX /tb_top/u1_sdcard/wr_data[7:0]
+addSignal -w analog -ds pwc -h 98 -UNSIGNED -HEX /tb_top/u0_sdio/u0_dma/bus_wdata[7:0]
 addGroup "G5"
 
 ; getSignalForm Scope Hierarchy Status
