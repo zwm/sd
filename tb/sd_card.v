@@ -35,7 +35,8 @@ assign pad_dat[3] = dat_oe[3] ? dat_o[3] : 1'bz;
 //---------------------------------------------------------------------------
 localparam CMD_RX_IDLE          = 0; // RX
 localparam CMD_RX_DATA          = 1;
-localparam CMD_RX_END           = 2;
+localparam CMD_RX_WAIT_TX       = 2;
+localparam CMD_RX_END           = 3;
 localparam CMD_TX_IDLE          = 0;
 localparam CMD_TX_WAIT          = 1;
 localparam CMD_TX_DATA          = 2;
@@ -169,12 +170,18 @@ always @(posedge sd_clk or negedge rstn)
             end
             CMD_RX_DATA: begin
                 if (cmd_rx_cnt == 46) begin
-                    cmd_rx_st <= CMD_RX_END;
                     cmd_rx_cnt <= 0;
+                    if (resp_len == 0) cmd_rx_st <= CMD_RX_END;
+                    else cmd_rx_st <= CMD_RX_WAIT_TX;
                 end
                 else begin
                     cmd_rx_cnt <= cmd_rx_cnt + 1;
                     cmd_dat[46 - cmd_rx_cnt] = cmd_i;
+                end
+            end
+            CMD_RX_WAIT_TX: begin
+                if (cmd_tx_st == CMD_TX_END) begin
+                    cmd_rx_st <= CMD_RX_END;
                 end
             end
             CMD_RX_END: begin
@@ -182,7 +189,8 @@ always @(posedge sd_clk or negedge rstn)
             end
         endcase
     end
-wire cmd_tx_start = (cmd_rx_st == CMD_RX_END) && (resp_len != 0);
+//wire cmd_tx_start = (cmd_rx_st == CMD_RX_END) && (resp_len != 0);
+wire cmd_tx_start = (cmd_rx_st == CMD_RX_DATA) && (cmd_rx_cnt == 46) && (resp_len != 0);
 // cmd tx, negedge
 always @(negedge sd_clk or negedge rstn)
     if (~rstn) begin

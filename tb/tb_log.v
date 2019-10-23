@@ -180,7 +180,7 @@ task log_parse;
         if (sim_end == 0) begin
             // command
             ret = $fgets (s, fp); // command label
-            ret = $fscanf(fp, "%s %h", s, log_clk_div); ret = $fgets(s, fp);
+            ret = $fscanf(fp, "%s %d", s, log_clk_div); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %d", s, log_cmd_idx); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %b", s, log_resp_type); ret = $fgets(s, fp);
             ret = $fscanf(fp, "%s %h %h", s, log_cmd_arg[31:16], log_cmd_arg[15:0]); ret = $fgets(s, fp);

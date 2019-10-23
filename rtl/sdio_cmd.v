@@ -60,7 +60,7 @@ reg [7:0] cnt;
 wire no_resp;
 wire resp_wait_busy;
 wire [7:0] resp_arg_len_max;
-wire crc_rst;
+wire crc_rst, resp136;
 reg crc_din_en;
 reg crc_din;
 wire [6:0] crc;
@@ -68,6 +68,7 @@ wire [6:0] crc;
 assign no_resp = (resp_type == 2'b00);
 assign resp_wait_busy = (resp_type == 2'b11);
 assign resp_arg_len_max = resp_type[1] ? 8'd31 : 8'd119; // 01: 136, 10&11: 48
+assign resp136 = (resp_type == 2'b01);
 
 // fsm syn
 always @(posedge sd_clk or negedge rstn) begin
@@ -314,7 +315,7 @@ always @(*) begin
         crc_din = cmd_argument[cnt];
         crc_din_en = tx_en;
     end
-    else if (st_curr == RX_RSP_INDEX) begin
+    else if ((st_curr == RX_RSP_INDEX) && (resp136 == 0)) begin // resp136 do not use resp_index
         crc_din = cmd_i;
         crc_din_en = rx_en;
     end
