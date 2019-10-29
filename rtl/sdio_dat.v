@@ -538,12 +538,12 @@ always @(posedge sd_clk or negedge rstn)
         else if (st_curr == RX_CRC)
             if (rx_en)
                 if (~dat_trans_width) begin // 1-bit
-                    if (dat_i_1b != crc0[byte_cnt[3:0]])
+                    if (dat_i_1b != crc0[15 - byte_cnt[3:0]])
                         rx_crc_err <= 1;
                 end
                 else begin // 4-bit
-                    if ((dat_i_4b[0] != crc0[byte_cnt[3:0]]) || (dat_i_4b[1] != crc1[byte_cnt[3:0]]) ||
-                        (dat_i_4b[2] != crc2[byte_cnt[3:0]]) || (dat_i_4b[3] != crc3[byte_cnt[3:0]]))
+                    if ((dat_i_4b[0] != crc0[15 - byte_cnt[3:0]]) || (dat_i_4b[1] != crc1[15 - byte_cnt[3:0]]) ||
+                        (dat_i_4b[2] != crc2[15 - byte_cnt[3:0]]) || (dat_i_4b[3] != crc3[15 - byte_cnt[3:0]]))
                         rx_crc_err <= 1;
                 end
 // crc_rst

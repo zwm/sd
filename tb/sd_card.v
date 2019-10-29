@@ -461,14 +461,14 @@ always @(posedge rd_clk or negedge rstn)
                 end
                 // output
                 if (~bus_width) begin
-                    rd_dat_o[0] <= crc0[rd_byte_cnt];
+                    rd_dat_o[0] <= crc0[15 - rd_byte_cnt];
                     rd_dat_oe[0] <= 1'b1;
                 end
                 else begin
-                    rd_dat_o[0] <= crc0[rd_byte_cnt];
-                    rd_dat_o[1] <= crc1[rd_byte_cnt];
-                    rd_dat_o[2] <= crc2[rd_byte_cnt];
-                    rd_dat_o[3] <= crc3[rd_byte_cnt];
+                    rd_dat_o[0] <= crc0[15 - rd_byte_cnt];
+                    rd_dat_o[1] <= crc1[15 - rd_byte_cnt];
+                    rd_dat_o[2] <= crc2[15 - rd_byte_cnt];
+                    rd_dat_o[3] <= crc3[15 - rd_byte_cnt];
                     rd_dat_oe <= 4'hf;
                 end
             end
