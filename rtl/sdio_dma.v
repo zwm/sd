@@ -59,7 +59,7 @@ always @(posedge bus_clk or negedge rstn) begin
         buf_free <= 0;
         dma_byte_en <= 0;
     end
-    else if (dma_rst) begin // rst should force dma to IDLE state
+    else if (dma_rst) begin // rst should force dma to IDLE state!
         st <= IDLE;
     end
     else if (dma_end) begin // dma_end

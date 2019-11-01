@@ -264,7 +264,7 @@ always @(posedge sd_clk or negedge rstn) begin
             end
             RX_RSP_END: begin
             end
-            RX_WAIT_BUSY: begin // smih, no timeout ???
+            RX_WAIT_BUSY: begin
             end
             default: begin
             end

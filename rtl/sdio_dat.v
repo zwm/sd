@@ -297,7 +297,7 @@ always @(*) begin
         end
         TX_BLK_GAP_STOP: begin
             if (last_blk)
-                st_next = TX_WAIT_DMA; // wait dma idle, then terminate on TX transfer
+                st_next = TX_WAIT_DMA; // wait dma idle, then terminate one TX transfer
             else if (blk_gap_stop == 0)
                 st_next = TX_PRE_PBIT;
         end

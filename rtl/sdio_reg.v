@@ -70,8 +70,8 @@ always @(posedge sd_clk or negedge rstn)
         {dat_trans_width, dat_trans_dir, dat_present, cmd_index_check, cmd_crc_check, resp_type[1:0]} <= 0;
         cmd_index <= 0;
         {irq_at_block_gap, blk_gap_read_wait_en, blk_gap_clk_en, blk_gap_stop} <= 0;
-        sd_clk_en <= 0;
-        {tx_pos, rx_neg, sd_clk_div} <= 0;
+        {tx_pos, rx_neg, sd_clk_en} <= 0;
+        sd_clk_div <= 0;
         dat_timeout_sel <= 0;
         {dat_timeout_cnt_sw_en, dat_sd_rst, cmd_sd_rst, all_sd_rst} <= 0;
         {err_irq_en, card_irq_en, blk_gap_irq_en, dat_complete_irq_en, cmd_complete_irq_en} <= 0;
