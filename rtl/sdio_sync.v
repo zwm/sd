@@ -12,6 +12,8 @@ module sdio_sync (
     output dma_byte_en_sd,
     input reg_wr_sys,
     output reg_wr_sd,
+    input dma_buf_empty_sys, // level
+    output dma_buf_empty_sd,
     // sd_clk -> sys_clk
     input buf0_rd_rdy_sd, // level
     input buf1_rd_rdy_sd,
@@ -57,6 +59,14 @@ sdio_psync u_psync2 (
     .dclk(sd_clk),
     .drst(sd_rst),
     .dsig(reg_wr_sd)
+);
+// dma_buf_empty_sys, level
+sdio_lsync u_lsync2 (
+    .rstn(rstn),
+    .ssig(dma_buf_empty_sys),
+    .dclk(sd_clk),
+    .drst(sd_rst),
+    .dsig(dma_buf_empty_sd)
 );
 
 //---------------------------------------------------------------------------
@@ -168,3 +178,4 @@ always @(posedge dclk or negedge rstn)
 // output
 assign dsig = ssig_sync[1];
 endmodule
+

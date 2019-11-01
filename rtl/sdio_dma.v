@@ -16,6 +16,7 @@ module sdio_dma #(
     input [7:0] buf0,
     input [7:0] buf1,
     output reg buf_free,
+    output dma_buf_empty,
     // tx
     input sdio_byte_done,
     output reg dma_byte_en,
@@ -47,6 +48,8 @@ assign bus_rd = (st == WAIT_BUS) & bus_ready & (~slavemode);
 assign bus_wr = (st == WAIT_BUS) & bus_ready & slavemode;
 // debug
 assign dma_state = {buf_ptr, st[2:0]};
+// dma_buf_empty
+assign dma_buf_empty = (st == WAIT_BUF_DATA) & (buf_ptr == 0 ? ~buf0_rd_rdy : ~buf1_rd_rdy);
 // fsm
 always @(posedge bus_clk or negedge rstn) begin
     if (rstn == 1'b0) begin
@@ -55,6 +58,12 @@ always @(posedge bus_clk or negedge rstn) begin
         bus_addr <= 0;
         buf_free <= 0;
         dma_byte_en <= 0;
+    end
+    else if (dma_rst) begin // rst should force dma to IDLE state
+        st <= IDLE;
+    end
+    else if (dma_end) begin // dma_end
+        st <= IDLE;
     end
     else begin
         case (st)
@@ -70,11 +79,8 @@ always @(posedge bus_clk or negedge rstn) begin
                         st <= WAIT_BUS;
                 end
             end
-            WAIT_BUF_DATA: begin
-                if (dma_rst | dma_end) begin
-                    st <= IDLE;
-                end
-                else if (buf_ptr) begin
+            WAIT_BUF_DATA: begin // Read: dma_end only during this state
+                if (buf_ptr) begin
                     if (buf1_rd_rdy) begin
                         st <= WAIT_BUS;
                         buf_free <= 1;
@@ -93,10 +99,7 @@ always @(posedge bus_clk or negedge rstn) begin
             end
             WAIT_BUS: begin
                 buf_free <= 0;
-                if (dma_rst | dma_end) begin
-                    st <= IDLE;
-                end
-                else if (bus_ready) begin
+                if (bus_ready) begin
                     if (slavemode)
                         st <= WAIT_WR_DONE;
                     else
@@ -123,12 +126,9 @@ always @(posedge bus_clk or negedge rstn) begin
                         bus_addr <= bus_addr + 1;
                 end
             end
-            WAIT_SDIO_DONE: begin
+            WAIT_SDIO_DONE: begin // Write: dma_end only this state!
                 dma_byte_en <= 0;
-                if (dma_rst | dma_end) begin
-                    st <= IDLE;
-                end
-                else if (sdio_byte_done) begin
+                if (sdio_byte_done) begin
                     st <= WAIT_BUS;
                 end
             end

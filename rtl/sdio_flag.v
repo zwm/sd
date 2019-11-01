@@ -8,6 +8,7 @@ module sdio_flag #(
     input cmd_sd_rst,
     input dat_sd_rst,
     input all_sd_rst,
+    input cmd_start,
     // reg
     input reg_wr,
     input [7:0] reg_addr,
@@ -55,77 +56,77 @@ always @(posedge sd_clk or negedge rstn)
     end
     else begin
         // card_irq, bit[3]
-        if (all_sd_rst)
+        if (all_sd_rst | cmd_start)
             card_irq <= 0;
         else if (card_irq_event)
             card_irq <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_IRQ) && (reg_wdata[3] == 1))
             card_irq <= 0;
         // blk_gap_irq, bit[2]
-        if (dat_sd_rst | all_sd_rst)
-            blk_gap_irq <= 1;
+        if (dat_sd_rst | all_sd_rst | cmd_start)
+            blk_gap_irq <= 0;
         else if (blk_gap_event)
             blk_gap_irq <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_IRQ) && (reg_wdata[2] == 1))
             blk_gap_irq <= 0;
         // dat_complete_irq, bit[1]
-        if (dat_sd_rst | all_sd_rst)
+        if (dat_sd_rst | all_sd_rst | cmd_start)
             dat_complete_irq <= 0;
         else if (dat_done_event)
             dat_complete_irq <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_IRQ) && (reg_wdata[1] == 1))
             dat_complete_irq <= 0;
         // cmd_complete_irq, bit[1]
-        if (cmd_sd_rst | all_sd_rst)
+        if (cmd_sd_rst | all_sd_rst | cmd_start)
             cmd_complete_irq <= 0;
         else if (cmd_done_event)
             cmd_complete_irq <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_IRQ) && (reg_wdata[0] == 1))
             cmd_complete_irq <= 0;
         // dat_end_err, bit[6]
-        if (dat_sd_rst | all_sd_rst)
+        if (dat_sd_rst | all_sd_rst | cmd_start)
             dat_end_err <= 0;
         else if (dat_end_err_event)
             dat_end_err <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_ERR) && (reg_wdata[6] == 1))
             dat_end_err <= 0;
         // dat_crc_err, bit[5]
-        if (dat_sd_rst | all_sd_rst)
+        if (dat_sd_rst | all_sd_rst | cmd_start)
             dat_crc_err <= 0;
         else if (dat_crc_err_event)
             dat_crc_err <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_ERR) && (reg_wdata[5] == 1))
             dat_crc_err <= 0;
         // dat_timeout_err, bit[4]
-        if (dat_sd_rst | all_sd_rst)
+        if (dat_sd_rst | all_sd_rst | cmd_start)
             dat_timeout_err <= 0;
         else if (dat_timeout_err_event)
             dat_timeout_err <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_ERR) && (reg_wdata[4] == 1))
             dat_timeout_err <= 0;
         // cmd_index_err, bit[3]
-        if (cmd_sd_rst | all_sd_rst)
+        if (cmd_sd_rst | all_sd_rst | cmd_start)
             cmd_index_err <= 0;
         else if (cmd_index_err_event)
             cmd_index_err <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_ERR) && (reg_wdata[3] == 1))
             cmd_index_err <= 0;
         // cmd_end_err, bit[2]
-        if (cmd_sd_rst | all_sd_rst)
+        if (cmd_sd_rst | all_sd_rst | cmd_start)
             cmd_end_err <= 0;
         else if (cmd_end_err_event)
             cmd_end_err <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_ERR) && (reg_wdata[2] == 1))
             cmd_end_err <= 0;
         // cmd_crc_err, bit[1]
-        if (cmd_sd_rst | all_sd_rst)
+        if (cmd_sd_rst | all_sd_rst | cmd_start)
             cmd_crc_err <= 0;
         else if (cmd_crc_err_event)
             cmd_crc_err <= 1;
         else if ((reg_wr == 1) && (reg_addr == REG_ADDR_ERR) && (reg_wdata[1] == 1))
             cmd_crc_err <= 0;
         // cmd_timeout_err, bit[0]
-        if (cmd_sd_rst | all_sd_rst)
+        if (cmd_sd_rst | all_sd_rst | cmd_start)
             cmd_timeout_err <= 0;
         else if (cmd_timeout_err_event)
             cmd_timeout_err <= 1;

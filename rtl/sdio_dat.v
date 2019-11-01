@@ -7,8 +7,8 @@ module sdio_dat (
     input [15:0] block_count, // 0: infinite, 1: single, others: multiple
     input dat_trans_dir, // 1: read, 0: write
     input dat_trans_width, // 0: 1-bit, 1: 4-bit
-    input blk_gap_stop, // 1: stop, 0: continue, no need continue reg???
-    input blk_gap_clk_en, // 1: stop, 0: continue, no need continue reg???
+    input blk_gap_stop, // 1: stop, 0: continue, no need continue reg???, yes!
+    input blk_gap_clk_en, // 1: stop, 0: continue, no need continue reg???, yes!
     input blk_gap_read_wait_en, // 1: drive DAT[2] low to stop card output
     input [1:0] pad_sel, // single bit mode, SD_DAT0~3 select
     output reg dat_crc_err_event,
@@ -28,6 +28,7 @@ module sdio_dat (
     output tmout_wait_tx_crc_busy_en,
     // dma
     input dma_rx_buf_rdy, // write dma rx buf
+    input dma_rx_buf_empty, // used to terminate one read transfer!
     output reg [7:0] dma_rx_buf,
     output reg dma_rx_buf_wr,
     input dma_tx_byte_rdy, // read dma tx byte
@@ -51,21 +52,22 @@ localparam DMA_RX_BYTE_WR       = 5'd3;
 localparam RX_CRC               = 5'd4;
 localparam RX_END_BIT           = 5'd5;
 localparam RX_BLK_GAP_STOP      = 5'd6;
-localparam TX_PRE_PBIT          = 5'd7;
-localparam TX_START_BIT         = 5'd8;
-localparam DMA_TX_BYTE_RD       = 5'd9;
-localparam TX_DATA_BYTE         = 5'd10;
-localparam TX_CRC               = 5'd11;
-localparam TX_END_BIT           = 5'd12;
-localparam TX_WAIT_NCRC         = 5'd13;
-localparam TX_CRC_STS_START     = 5'd14;
-localparam TX_CRC_STS_DATA      = 5'd15;
-localparam TX_CRC_STS_END       = 5'd16;
-localparam TX_CHECK_BUSY        = 5'd17;
-localparam TX_WAIT_BUSY         = 5'd18;
-localparam TX_BLOCK_END         = 5'd19;
-localparam TX_BLK_GAP_STOP      = 5'd20;
-localparam WAIT_EIGHT_CYC       = 5'd21;
+localparam RX_WAIT_DMA          = 5'd7;
+localparam TX_PRE_PBIT          = 5'd8;
+localparam TX_START_BIT         = 5'd9;
+localparam DMA_TX_BYTE_RD       = 5'd10;
+localparam TX_DATA_BYTE         = 5'd11;
+localparam TX_CRC               = 5'd12;
+localparam TX_END_BIT           = 5'd13;
+localparam TX_WAIT_NCRC         = 5'd14;
+localparam TX_CRC_STS_START     = 5'd15;
+localparam TX_CRC_STS_DATA      = 5'd16;
+localparam TX_CRC_STS_END       = 5'd17;
+localparam TX_CHECK_BUSY        = 5'd18;
+localparam TX_WAIT_BUSY         = 5'd19;
+localparam TX_BLOCK_END         = 5'd20;
+localparam TX_BLK_GAP_STOP      = 5'd21;
+localparam TX_WAIT_DMA          = 5'd22;
 // wire
 reg [2:0] bit_cnt;
 reg [15:0] byte_cnt, blk_cnt;
@@ -108,11 +110,11 @@ assign dat_i_1b = dat_i_1b_mux;
 assign dat_i_4b = {dat_3_i, dat_2_i, dat_1_i, dat_0_i};
 assign dat_i_sts = (dat_trans_width == 0) ? dat_i_1b : dat_i_4b[0];
 // dat_o mux
-assign dat_0_o = (dat_trans_width == 0 && pad_sel == 2'b00) ? dat_o[0] : dat_o[0];
+assign dat_0_o = dat_trans_width == 0 ? (pad_sel == 2'b00 ? dat_o[0] : 1'b0) : dat_o[0];
 assign dat_1_o = (dat_trans_width == 0 && pad_sel == 2'b01) ? dat_o[0] : dat_o[1];
 assign dat_2_o = (dat_trans_width == 0 && pad_sel == 2'b10) ? dat_o[0] : dat_o[2];
 assign dat_3_o = (dat_trans_width == 0 && pad_sel == 2'b11) ? dat_o[0] : dat_o[3];
-assign dat_0_oe = (dat_trans_width == 0 && pad_sel == 2'b00) ? dat_oe[0] : dat_oe[0];
+assign dat_0_oe = dat_trans_width == 0 ? (pad_sel == 2'b00 ? dat_oe[0] : 1'b0) : dat_oe[0];
 assign dat_1_oe = (dat_trans_width == 0 && pad_sel == 2'b01) ? dat_oe[0] : dat_oe[1];
 assign dat_2_oe = (dat_trans_width == 0 && pad_sel == 2'b10) ? dat_oe[0] : dat_oe[2];
 assign dat_3_oe = (dat_trans_width == 0 && pad_sel == 2'b11) ? dat_oe[0] : dat_oe[3];
@@ -207,9 +209,14 @@ always @(*) begin
         end
         RX_BLK_GAP_STOP: begin
             if (last_blk)
-                st_next = IDLE; // 8 ???
-            else if (blk_gap_stop == 0) // need more wait ???
+                st_next = RX_WAIT_DMA; // wait buf write to mem, then END, 20191030
+            else if (blk_gap_stop == 0) // need more wait ???, smih, no wait, 20191030
                 st_next = RX_START_BIT;
+        end
+        RX_WAIT_DMA: begin
+            if (dma_rx_buf_empty) begin
+                st_next = IDLE;
+            end
         end
         TX_PRE_PBIT: begin
             if (tx_en) begin
@@ -290,9 +297,14 @@ always @(*) begin
         end
         TX_BLK_GAP_STOP: begin
             if (last_blk)
-                st_next = IDLE;
+                st_next = TX_WAIT_DMA; // wait dma idle, then terminate on TX transfer
             else if (blk_gap_stop == 0)
                 st_next = TX_PRE_PBIT;
+        end
+        TX_WAIT_DMA: begin
+            if (dma_tx_byte_flag) begin // bus idle
+                st_next = IDLE;
+            end
         end
         default: begin
             st_next = IDLE;
@@ -501,7 +513,7 @@ always @(posedge sd_clk or negedge rstn)
         dma_rx_buf_wr <= 1;
     else
         dma_rx_buf_wr <= 0;
-// dma_tx_byte_flag, ???
+// dma_tx_byte_flag, ???, yes!
 always @(posedge sd_clk or negedge rstn)
     if (~rstn)
         dma_tx_byte_flag <= 0;
@@ -596,29 +608,46 @@ sdio_crc16 u_crc3 (
     .crc_din(crc3_din),
     .crc(crc3)
 );
-// crc err, rx_crc_err or tx crc status error
-always @(posedge sd_clk or negedge rstn)
-    if (~rstn)
-        dat_crc_err_event <= 0;
-    else if ((st_curr == RX_END_BIT) && (rx_en == 1)) // rx_crc
-        dat_crc_err_event <= rx_crc_err;
+//// crc err, rx_crc_err or tx crc status error
+//always @(posedge sd_clk or negedge rstn)
+//    if (~rstn)
+//        dat_crc_err_event <= 0;
+//    else if ((st_curr == RX_END_BIT) && (rx_en == 1)) // rx_crc
+//        dat_crc_err_event <= rx_crc_err;
+//    else if ((st_curr == TX_CRC_STS_END) && (rx_en == 1)) // tx_crc, "010": pass, "101": fail
+//        dat_crc_err_event <= (tx_crc_status != 3'b010);
+// bugfix: error flag can not be cleared, 20191029
+always @(*)
+    if ((st_curr == RX_END_BIT) && (rx_en == 1)) // rx_crc
+        dat_crc_err_event = rx_crc_err;
     else if ((st_curr == TX_CRC_STS_END) && (rx_en == 1)) // tx_crc, "010": pass, "101": fail
-        dat_crc_err_event <= (tx_crc_status != 3'b010);
-// end_err, rx_data or tx_crc_status
-always @(posedge sd_clk or negedge rstn)
-    if (~rstn)
-        dat_end_err_event <= 0;
-    else if ((st_curr == RX_END_BIT) && (rx_en == 1)) // rx_end bit
-        dat_end_err_event <= ~rx_end_flag;
+        dat_crc_err_event = (tx_crc_status != 3'b010);
+    else
+        dat_crc_err_event = 1'b0;
+//// end_err, rx_data or tx_crc_status
+//always @(posedge sd_clk or negedge rstn)
+//    if (~rstn)
+//        dat_end_err_event <= 0;
+//    else if ((st_curr == RX_END_BIT) && (rx_en == 1)) // rx_end bit
+//        dat_end_err_event <= ~rx_end_flag;
+//    else if ((st_curr == TX_CRC_STS_END) && (rx_en == 1)) // tx_crc_status end bit
+//        dat_end_err_event <= ~rx_end_flag;
+// bugfix: error flag can not be cleared, 20191029
+always @(*)
+    if ((st_curr == RX_END_BIT) && (rx_en == 1)) // rx_end bit
+        dat_end_err_event = ~rx_end_flag;
     else if ((st_curr == TX_CRC_STS_END) && (rx_en == 1)) // tx_crc_status end bit
-        dat_end_err_event <= ~rx_end_flag;
+        dat_end_err_event = ~rx_end_flag;
+    else
+        dat_end_err_event = 0;
 // block gap event
 assign blk_gap_event = ((st_curr == RX_END_BIT) && (st_next == RX_BLK_GAP_STOP)) ||
                        ((st_curr == TX_BLOCK_END) && (st_next == TX_BLK_GAP_STOP));
 // status
 assign dat_busy = (st_curr != IDLE);
 //assign dat_done = (st_curr != IDLE) && (st_next == IDLE);
-assign dat_done = ((st_curr == RX_BLK_GAP_STOP) || (st_curr == TX_BLK_GAP_STOP)) && (st_next == IDLE);
+//assign dat_done = ((st_curr == RX_BLK_GAP_STOP) || (st_curr == TX_BLK_GAP_STOP)) && (st_next == IDLE);
+assign dat_done = ((st_curr == RX_WAIT_DMA) || (st_curr == TX_WAIT_DMA)) && (st_next == IDLE);
 assign dat_fsm = st_curr[4:0];
 // timeout
 assign tmout_wait_rx_start_en = (st_curr == RX_START_BIT);

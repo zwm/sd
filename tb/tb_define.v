@@ -1,4 +1,10 @@
-
+`define SINGLE_BIT_DAT0
+//`define SINGLE_BIT_DAT0
+//`define SINGLE_BIT_DAT1
+//`define SINGLE_BIT_DAT2
+//`define SINGLE_BIT_DAT3
+`define FILE_SIM                "case_example.dat"
+//`define FILE_SIM                "case_1_bit.dat"
 // fsdb
 `define DUMP_FSDB               1
 // case_dir

@@ -156,7 +156,7 @@ always @(*) begin
                     st_next = IDLE;
         end
         RX_WAIT_BUSY: begin
-            if (dat_0_i == 1'b1) // busy end, no timeout???
+            if (dat_0_i == 1'b1) // busy end, no timeout???, added!
                 st_next = IDLE;
         end
         default: begin

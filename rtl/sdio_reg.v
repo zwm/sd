@@ -27,6 +27,8 @@ module sdio_reg (
     output reg blk_gap_read_wait_en,
     output reg blk_gap_clk_en,
     output reg blk_gap_stop,
+    output reg tx_pos,
+    output reg rx_neg,
     input sd_clk_pause,
     output reg sd_clk_en,
     output reg [7:0] sd_clk_div,
@@ -53,6 +55,9 @@ module sdio_reg (
     input [15:0] dma_addr,
     input [3:0] dma_state
 );
+// bugfix: sd_clk_pause_state
+wire sd_clk_pause_state;
+assign sd_clk_pause_state = sd_clk_pause | (~sd_clk_en);
 //---------------------------------------------------------------------------
 // SD Domain, SD Regs
 //---------------------------------------------------------------------------
@@ -66,7 +71,7 @@ always @(posedge sd_clk or negedge rstn)
         cmd_index <= 0;
         {irq_at_block_gap, blk_gap_read_wait_en, blk_gap_clk_en, blk_gap_stop} <= 0;
         sd_clk_en <= 0;
-        sd_clk_div <= 0;
+        {tx_pos, rx_neg, sd_clk_div} <= 0;
         dat_timeout_sel <= 0;
         {dat_timeout_cnt_sw_en, dat_sd_rst, cmd_sd_rst, all_sd_rst} <= 0;
         {err_irq_en, card_irq_en, blk_gap_irq_en, dat_complete_irq_en, cmd_complete_irq_en} <= 0;
@@ -86,7 +91,7 @@ always @(posedge sd_clk or negedge rstn)
             8'd8 : {dat_trans_width, dat_trans_dir, dat_present, cmd_index_check, cmd_crc_check, resp_type[1:0]} <= reg_wdata[6:0];
             8'd9 : cmd_index <= reg_wdata[5:0];
             8'd27: {irq_at_block_gap, blk_gap_read_wait_en, blk_gap_clk_en, blk_gap_stop} <= reg_wdata[3:0];
-            8'd28: sd_clk_en <= reg_wdata[0];
+            8'd28: {tx_pos, rx_neg, sd_clk_en} <= {reg_wdata[5], reg_wdata[4], reg_wdata[0]};
             8'd29: sd_clk_div <= reg_wdata;
             8'd30: dat_timeout_sel <= reg_wdata;
             8'd31: {dat_timeout_cnt_sw_en, dat_sd_rst, cmd_sd_rst, all_sd_rst} <= reg_wdata[3:0];
@@ -169,7 +174,7 @@ always @(*)
         8'd25: reg_rdata = {2'h0, resp_index};
         8'd26: reg_rdata = {1'h0, resp_crc};
         8'd27: reg_rdata = {4'h0, irq_at_block_gap, blk_gap_read_wait_en, blk_gap_clk_en, blk_gap_stop};
-        8'd28: reg_rdata = {6'h0, sd_clk_pause, sd_clk_en};
+        8'd28: reg_rdata = {2'h0, tx_pos, rx_neg, 2'h0, sd_clk_pause_state, sd_clk_en};
         8'd29: reg_rdata = sd_clk_div;
         8'd30: reg_rdata = dat_timeout_sel;
         8'd31: reg_rdata = {tx_crc_status, dat_timeout_cnt_running, dat_timeout_cnt_sw_en, dat_sd_rst, cmd_sd_rst, all_sd_rst};

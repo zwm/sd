@@ -1,9 +1,13 @@
 // global var
+// flag asemble
+wire [7:0] norm_irq_sim = {3'b000, `SDIO_TOP.err_irq, `SDIO_TOP.card_irq, `SDIO_TOP.blk_gap_irq, `SDIO_TOP.dat_complete_irq, `SDIO_TOP.cmd_complete_irq};
+wire [7:0] err_irq_sim = {1'b0, `SDIO_TOP.dat_end_err, `SDIO_TOP.dat_crc_err, `SDIO_TOP.dat_timeout_err, `SDIO_TOP.cmd_index_err, `SDIO_TOP.cmd_end_err, `SDIO_TOP.cmd_crc_err, `SDIO_TOP.cmd_timeout_err};
+//
 reg [7:0] log_mem [2**16-1:0]; // 64KB
 integer tsk_start, tsk_en, tsk_end, task_cnt;
 integer cmp_cnt, err_cnt;
-integer tx_dat_cmp_cnt, rx_dat_cmp_cnt, flag_cmp_cnt;
-integer tx_dat_err_cnt, rx_dat_err_cnt, flag_err_cnt;
+integer tx_dat_cmp_cnt, rx_dat_cmp_cnt, flag_cmp_cnt, cmp_cnt2;
+integer tx_dat_err_cnt, rx_dat_err_cnt, flag_err_cnt, err_cnt2;
 reg [7:0] log_clk_div;
 reg [5:0] log_cmd_idx;
 reg [1:0] log_resp_type;
@@ -65,6 +69,7 @@ task tsk_proc_init;
         flag_cmp_cnt = 0; flag_err_cnt = 0;
         tx_dat_cmp_cnt = 0; tx_dat_err_cnt = 0;
         rx_dat_cmp_cnt = 0; rx_dat_err_cnt = 0;
+        cmp_cnt2 = 0; err_cnt2 = 0; // flag clear function
         @(posedge `SDIO_TOP.sd_clk) begin
             tsk_start <= 1;
             tsk_en <= 1;
@@ -80,8 +85,8 @@ task tsk_proc_end;
     integer tsk_cmp_cnt, tsk_err_cnt;
     begin
         // sum
-        tsk_cmp_cnt = flag_cmp_cnt + tx_dat_cmp_cnt + rx_dat_cmp_cnt;
-        tsk_err_cnt = flag_err_cnt + tx_dat_err_cnt + rx_dat_err_cnt;
+        tsk_cmp_cnt = flag_cmp_cnt + tx_dat_cmp_cnt + rx_dat_cmp_cnt + cmp_cnt2;
+        tsk_err_cnt = flag_err_cnt + tx_dat_err_cnt + rx_dat_err_cnt + err_cnt2;
         // display
         if (tsk_err_cnt == 0) begin
             $display("%t, task: %0d, tsk_cmp_cnt: %0d, tsk_err_cnt: %0d, check pass.", $time, task_cnt, tsk_cmp_cnt, tsk_err_cnt);
@@ -118,7 +123,7 @@ task main_loop;
     begin
         glb_init;
         // File Open
-        fp = $fopen({tb_top.case_dir, "case_example.dat"}, "r");
+        fp = $fopen({tb_top.case_dir, `FILE_SIM}, "r");
         // Task Loop
         begin: LP_TASK
             while(1) begin
@@ -266,8 +271,8 @@ assign log_blk_gap_ctrl[0] = log_stop_at_blk_gap;
 // reg_conf
 task reg_conf;
     begin
-        // reset all
-        set_rst_all;
+        //// reset all
+        //set_rst_all;
         // set reg
         set_sd_clk_div(log_clk_div);
         set_cmd_arg(log_cmd_arg);
@@ -283,9 +288,22 @@ task reg_conf;
         set_err_irq_en(log_err_irq_en);
         // enable sd_clk
         set_sd_clk_en(1);
-        // clear flag
-        err_irq_clr;
-        norm_irq_clr;
+        //wr_reg(28, 8'h31); // enable will cause error!!!
+        `ifdef SINGLE_BIT_DAT0
+            wr_reg(40, 8'h00);
+        `endif
+        `ifdef SINGLE_BIT_DAT1
+            wr_reg(40, 8'h01);
+        `endif
+        `ifdef SINGLE_BIT_DAT2
+            wr_reg(40, 8'h02);
+        `endif
+        `ifdef SINGLE_BIT_DAT3
+            wr_reg(40, 8'h03);
+        `endif
+        //// clear flag
+        //err_irq_clr;
+        //norm_irq_clr;
         // start cmd
         set_cmd_idx(log_cmd_idx);
     end
@@ -314,6 +332,22 @@ task chk_tsk;
         flag_cmp_cnt = flag_cmp_cnt + 1;
     end
 endtask
+// common check task
+task chk_com;
+    input [15*8-1:0] s;
+    input [31:0] hw_val, log_val;
+    output err;
+    begin
+        if (hw_val === log_val) begin
+            err = 0;
+            //$display("%t, item: %s, hw_val: %0h, log_val: %0h, check pass.", $time, s, hw_val, log_val);
+        end
+        else begin
+            err = 1;
+            $display("%t, item: %s, hw_val: %0h, log_val: %0h, check failed!", $time, s, hw_val, log_val);
+        end
+    end
+endtask
 // check_flag;
 task check_flag;
     begin
@@ -329,6 +363,55 @@ task check_flag;
         chk_tsk("cmd_end_bit_err", `SDIO_TOP.u2_reg.cmd_end_err, log_cmd_end_bit_err);
         chk_tsk("cmd_crc_err", `SDIO_TOP.u2_reg.cmd_crc_err, log_cmd_crc_err);
         chk_tsk("cmd_timeout_err", `SDIO_TOP.u2_reg.cmd_timeout_err, log_cmd_timeout_err);
+    end
+endtask
+// clr_task
+task clr_flag;
+    begin
+        repeat(10) @(posedge `SDIO_TOP.sd_clk);
+        wr_reg(32, 8'hff);
+        wr_reg(33, 8'hff);
+    end
+endtask
+// tsk_chk2
+task tsk_chk2;
+    integer i, j, k, l;
+    begin: LP_TSK_CHK2
+        while(1) begin
+            @(posedge `SDIO_TOP.sd_clk);
+            // cmd_start
+            if (`SDIO_TOP.cmd_start == 1) begin
+                repeat(2) @(posedge `SDIO_TOP.sd_clk);
+                chk_com("cmd_start norm_irq", norm_irq_sim, 8'h00, i[0]);
+                cmp_cnt2 = cmp_cnt2 + 1; err_cnt2 = err_cnt2 + i[0];
+                chk_com("cmd_start err_irq", err_irq_sim, 8'h00, i[0]);
+                cmp_cnt2 = cmp_cnt2 + 1; err_cnt2 = err_cnt2 + i[0];
+            end
+            // rst_all
+            if (`SDIO_TOP.all_sd_rst == 1) begin
+                repeat(10) @(posedge `SDIO_TOP.sd_clk);
+                chk_com("all_rst norm_irq", norm_irq_sim, 8'h00, i[0]);
+                cmp_cnt2 = cmp_cnt2 + 1; err_cnt2 = err_cnt2 + i[0];
+                chk_com("all_rst err_irq", err_irq_sim, 8'h00, i[0]);
+                cmp_cnt2 = cmp_cnt2 + 1; err_cnt2 = err_cnt2 + i[0];
+            end
+            // norm_irq_clr
+            if (`SDIO_TOP.reg_wr_sd == 1 && `SDIO_TOP.reg_addr == 32) begin
+                j[7:0] = `SDIO_TOP.reg_wdata[7:0];
+                repeat(2) @(posedge `SDIO_TOP.sd_clk);
+                k = norm_irq_sim & j[7:0]; // mask unused bits
+                chk_com("irq_clr norm_irq", k[7:0], 8'h00, i[0]);
+                cmp_cnt2 = cmp_cnt2 + 1; err_cnt2 = err_cnt2 + i[0];
+            end
+            // err_irq_clr
+            if (`SDIO_TOP.reg_wr_sd == 1 && `SDIO_TOP.reg_addr == 33) begin
+                j[7:0] = `SDIO_TOP.reg_wdata[7:0];
+                repeat(2) @(posedge `SDIO_TOP.sd_clk);
+                k = err_irq_sim & j[7:0]; // mask unused bits
+                chk_com("irq_clr err_irq", k[7:0], 8'h00, i[0]);
+                cmp_cnt2 = cmp_cnt2 + 1; err_cnt2 = err_cnt2 + i[0];
+            end
+        end
     end
 endtask
 // data_checker;
@@ -348,6 +431,7 @@ task tsk_proc;
                     reg_conf;
                     wait_task;
                     check_flag;
+                    clr_flag;
                 end
                 // checker
                 data_checker;
@@ -389,6 +473,7 @@ initial begin
     fork
         wr_dat_chk;
         rd_dat_chk;
+        tsk_chk2;
     join
 end
 // wr_dat_chk

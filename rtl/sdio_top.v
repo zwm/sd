@@ -38,6 +38,7 @@ wire dma_byte_en_sys, dma_byte_en_sd;
 wire sdio_byte_done_sd, sdio_byte_done_sys;
 wire reg_wr_sys, reg_wr_sd;
 wire dat_done_sd, dat_done_sys;
+wire dma_buf_empty_sys, dma_buf_empty_sd;
 // misc
 wire tx_en, rx_en;
 wire cmd_start, dat_start;
@@ -51,7 +52,7 @@ wire tmout_wait_tx_crc_start_en, tmout_wait_tx_crc_busy_en;
 wire inst_cmd_sd_rst, inst_dat_sd_rst, inst_buf_sd_rst;
 wire dma_auto_start_sd, dma_auto_start_sys, dma_start_mux, dma_rst_mux;
 // reg
-wire [15:0] block_size; // 0~65535 byte
+wire [15:0] block_size; // 0~65535 bytes
 wire [15:0] block_count; // 0: infinite, 1: single, others: multiple
 wire [31:0] cmd_argument;
 wire dat_trans_width; // 0: 1-bit, 1: 4-bit
@@ -68,6 +69,8 @@ wire irq_at_block_gap; // not implemented
 wire blk_gap_read_wait_en; // 1: drive DAT[2] low to stop card data output during block gap
 wire blk_gap_clk_en; // 1: stop SdClk to stop card data output during block gap
 wire blk_gap_stop; // 1: stop at block gap, 0: continue
+wire tx_pos;
+wire rx_neg;
 wire sd_clk_pause;
 wire sd_clk_en;
 wire [7:0] sd_clk_div; // sd_clk = 48m/((sd_clk_div + 1)*2), even freq div only
@@ -107,7 +110,8 @@ assign dma_start_mux = dma_sw_start | dma_auto_start_sys;
 // rst
 assign inst_cmd_sd_rst = cmd_sd_rst | all_sd_rst;
 assign inst_dat_sd_rst = dat_sd_rst | all_sd_rst;
-assign inst_buf_sd_rst = dat_sd_rst | all_sd_rst | dat_done; // tx end should reset buf
+//assign inst_buf_sd_rst = dat_sd_rst | all_sd_rst | dat_done; // tx end should reset buf
+assign inst_buf_sd_rst = dat_sd_rst | all_sd_rst | cmd_start; // rx may lose data, so rst and cmd_start!
 // bus_addr
 assign bus_addr[16:0] = {dma_mram_sel, dma_addr[15:0]};
 // sync
@@ -125,7 +129,7 @@ assign dat_timeout_cnt_running = timeout_cnt_en;
 // card_irq
 // SDIO2.0, 8.1.1, 1-bit mode, Pin 8, dedicated to interrupt function, signals irq by assert Pin 8 low
 // SDIO2.0, 8.1.2, 4-bit mode, Pin 8, shared between IRQ and DAT[1], signals irq by assert Pin 8 low
-assign card_irq_event = (~dat_trans_width) ? (~pad_dat_i[1]) : (dat_busy ? 1'b0 : (~pad_dat_i[1]));
+assign card_irq_event = (~dat_trans_width) ? ((pad_sel == 2'b01) ? (~pad_dat_i[0]) : (~pad_dat_i[1])) : (dat_busy ? 1'b0 : (~pad_dat_i[1]));
 // err_irq
 assign err_irq = (dat_end_err_en & dat_end_err) |
                  (dat_crc_err_en & dat_crc_err) |
@@ -157,6 +161,7 @@ sdio_dma u0_dma (
     .buf0                       ( buf0_rdata                    ),
     .buf1                       ( buf1_rdata                    ),
     .buf_free                   ( buf_free_sys                  ), // to sd, sys -> sd
+    .dma_buf_empty              ( dma_buf_empty_sys             ), // to sd, sys -> sd
     .dma_byte_en                ( dma_byte_en_sys               ), // to sd, sys -> sd
     .sdio_byte_done             ( sdio_byte_done_sys            ), // from sd, sd -> sys
     .dma_byte                   ( dma_tx_byte                   ), 
@@ -182,6 +187,8 @@ sdio_sync u1_sync (
     .sd_clk                     ( sd_clk                        ),
     .buf_free_sys               ( buf_free_sys                  ), // sys_clk -> sd_clk
     .buf_free_sd                ( buf_free_sd                   ),
+    .dma_buf_empty_sys          ( dma_buf_empty_sys             ), // to sd, sys -> sd
+    .dma_buf_empty_sd           ( dma_buf_empty_sd              ),
     .dma_byte_en_sys            ( dma_byte_en_sys               ),
     .dma_byte_en_sd             ( dma_byte_en_sd                ),
     .reg_wr_sys                 ( reg_wr_sys                    ),
@@ -227,6 +234,8 @@ sdio_reg u2_reg (
     .blk_gap_read_wait_en       ( blk_gap_read_wait_en          ),
     .blk_gap_clk_en             ( blk_gap_clk_en                ),
     .blk_gap_stop               ( blk_gap_stop                  ),
+    .tx_pos                     ( tx_pos                        ),
+    .rx_neg                     ( rx_neg                        ),
     .sd_clk_pause               ( sd_clk_pause                  ),
     .sd_clk_en                  ( sd_clk_en                     ),
     .sd_clk_div                 ( sd_clk_div                    ),
@@ -290,6 +299,8 @@ sdio_clk u3_clk (
     .sd_clk                     ( sd_clk                        ),
     .sd_clk_en                  ( sd_clk_en                     ),
     .sd_clk_div                 ( sd_clk_div                    ),
+    .tx_pos                     ( tx_pos                        ),
+    .rx_neg                     ( rx_neg                        ),
     .sd_clk_pause               ( sd_clk_pause                  ),
     .clk_o                      ( pad_clk_o                     ), // gpio
     .clk_oe                     ( pad_clk_oe                    ),
@@ -355,6 +366,7 @@ sdio_dat u5_dat (
     .tmout_wait_tx_crc_start_en ( tmout_wait_tx_crc_start_en    ),
     .tmout_wait_tx_crc_busy_en  ( tmout_wait_tx_crc_busy_en     ),
     .dma_rx_buf_rdy             ( rx_buf_rdy                    ),
+    .dma_rx_buf_empty           ( dma_buf_empty_sd              ),
     .dma_rx_buf                 ( rx_buf                        ),
     .dma_rx_buf_wr              ( rx_buf_wr                     ),
     .dma_tx_byte_rdy            ( dma_byte_en_sd                ), // from dma, sys -> sd
@@ -402,6 +414,7 @@ sdio_flag #(32, 33) u8_flag (
     .cmd_sd_rst                 ( cmd_sd_rst                    ),
     .dat_sd_rst                 ( dat_sd_rst                    ),
     .all_sd_rst                 ( all_sd_rst                    ),
+    .cmd_start                  ( cmd_start                     ),
     .reg_wr                     ( reg_wr_sd                     ),
     .reg_addr                   ( reg_addr                      ),
     .reg_wdata                  ( reg_wdata                     ),

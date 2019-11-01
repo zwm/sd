@@ -4,6 +4,8 @@ module sdio_clk (
     input sd_clk,
     input sd_clk_en,
     input [7:0] sd_clk_div,
+    input tx_pos,
+    input rx_neg,
     input sd_clk_pause,
     output reg clk_o,
     output reg clk_oe,
@@ -14,8 +16,8 @@ module sdio_clk (
 // fsm
 reg [7:0] clk_cnt;
 // output
-assign tx_en = ((sd_clk_en == 1) && (clk_cnt == sd_clk_div) && (sd_clk_pause == 0)) ?  clk_o : 1'b0;
-assign rx_en = ((sd_clk_en == 1) && (clk_cnt == sd_clk_div) && (sd_clk_pause == 0)) ? ~clk_o : 1'b0;
+assign tx_en = ((sd_clk_en == 1) && (clk_cnt == sd_clk_div) && (sd_clk_pause == 0)) ? (tx_pos ? (~clk_o) : ( clk_o)) : 1'b0; // spec, tx at negedge
+assign rx_en = ((sd_clk_en == 1) && (clk_cnt == sd_clk_div) && (sd_clk_pause == 0)) ? (rx_neg ? ( clk_o) : (~clk_o)) : 1'b0; // spec, rx at posedge
 // clk_cnt
 always @(posedge sd_clk or negedge rstn) begin
     if (rstn == 1'b0) begin

@@ -1,7 +1,8 @@
 `timescale 1ns/1ps
 
 module tb_top();
-
+// macro
+`include "tb_define.v"
 //
 reg sim_end;
 reg [8*64-1:0] case_dir;
@@ -18,13 +19,36 @@ wire [3:0] sdio_pad_dat;
 // tri-state connection
 assign sdio_pad_clk = pad_clk_oe ? pad_clk_o : 1'bz;
 assign sdio_pad_cmd = pad_cmd_oe ? pad_cmd_o : 1'bz;
+`ifdef SINGLE_BIT_DAT0
 assign sdio_pad_dat[0] = pad_dat_oe[0] ? pad_dat_o[0] : 1'bz;
 assign sdio_pad_dat[1] = pad_dat_oe[1] ? pad_dat_o[1] : 1'bz;
 assign sdio_pad_dat[2] = pad_dat_oe[2] ? pad_dat_o[2] : 1'bz;
 assign sdio_pad_dat[3] = pad_dat_oe[3] ? pad_dat_o[3] : 1'bz;
+assign pad_dat_i = {sdio_pad_dat[3], sdio_pad_dat[2], sdio_pad_dat[1], sdio_pad_dat[0]};
+`endif
+`ifdef SINGLE_BIT_DAT1
+assign sdio_pad_dat[0] = pad_dat_oe[1] ? pad_dat_o[1] : 1'bz;
+assign sdio_pad_dat[1] = pad_dat_oe[0] ? pad_dat_o[0] : 1'bz;
+assign sdio_pad_dat[2] = pad_dat_oe[2] ? pad_dat_o[2] : 1'bz;
+assign sdio_pad_dat[3] = pad_dat_oe[3] ? pad_dat_o[3] : 1'bz;
+assign pad_dat_i = {sdio_pad_dat[3], sdio_pad_dat[2], sdio_pad_dat[0], sdio_pad_dat[1]};
+`endif
+`ifdef SINGLE_BIT_DAT2
+assign sdio_pad_dat[0] = pad_dat_oe[2] ? pad_dat_o[2] : 1'bz;
+assign sdio_pad_dat[1] = pad_dat_oe[1] ? pad_dat_o[1] : 1'bz;
+assign sdio_pad_dat[2] = pad_dat_oe[0] ? pad_dat_o[0] : 1'bz;
+assign sdio_pad_dat[3] = pad_dat_oe[3] ? pad_dat_o[3] : 1'bz;
+assign pad_dat_i = {sdio_pad_dat[3], sdio_pad_dat[0], sdio_pad_dat[1], sdio_pad_dat[2]};
+`endif
+`ifdef SINGLE_BIT_DAT3
+assign sdio_pad_dat[0] = pad_dat_oe[3] ? pad_dat_o[3] : 1'bz;
+assign sdio_pad_dat[1] = pad_dat_oe[1] ? pad_dat_o[1] : 1'bz;
+assign sdio_pad_dat[2] = pad_dat_oe[2] ? pad_dat_o[2] : 1'bz;
+assign sdio_pad_dat[3] = pad_dat_oe[0] ? pad_dat_o[0] : 1'bz;
+assign pad_dat_i = {sdio_pad_dat[0], sdio_pad_dat[2], sdio_pad_dat[1], sdio_pad_dat[3]};
+`endif
 assign pad_clk_i = sdio_pad_clk;
 assign pad_cmd_i = sdio_pad_cmd;
-assign pad_dat_i = sdio_pad_dat;
 // pull-up
 pullup(sdio_pad_clk);
 pullup(sdio_pad_cmd);
@@ -33,7 +57,6 @@ pullup(sdio_pad_dat[1]);
 pullup(sdio_pad_dat[2]);
 pullup(sdio_pad_dat[3]);
 // inc
-`include "tb_define.v"
 `include "tb_log.v"
 `include "tb_lib.v"
 // main
