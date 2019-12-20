@@ -525,6 +525,8 @@ always @(posedge sd_clk or negedge rstn)
 always @(posedge sd_clk or negedge rstn)
     if (~rstn)
         tx_crc_status <= 3'b000;
+    else if ((st_curr == IDLE) && (dat_start == 1'b1)) // init
+        tx_crc_status <= 3'b000;
     else if ((st_curr == TX_CRC_STS_DATA) && (rx_en == 1'b1))
         tx_crc_status <= {tx_crc_status[1:0], dat_i_sts};
 // CLK pause logic

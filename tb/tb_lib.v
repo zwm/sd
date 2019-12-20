@@ -14,6 +14,8 @@ end
 // sys_init
 task sys_init;
     begin
+        reg_data_wr = 0;
+        reg_addr_wr = 0;
         sim_end = 0;
     end
 endtask
@@ -23,15 +25,18 @@ task wr_reg;
     input [7:0] wdata;
     begin
         // write addr
-        @(posedge bus_clk);
-        reg_data_wr = 0;
+        repeat(1) @(posedge bus_clk); #1;
         reg_addr = addr;
-        repeat(2) @(posedge bus_clk);
+        reg_addr_wr = 1;
+        repeat(1) @(posedge bus_clk); #1;
+        reg_addr_wr = 0;
+        repeat(2) @(posedge bus_clk); #1;
+        // write data
         reg_data_wr = 1;
         reg_wdata = wdata;
-        // clear wr
-        @(posedge bus_clk);
+        repeat(1) @(posedge bus_clk); #1;
         reg_data_wr = 0;
+        repeat(2) @(posedge bus_clk); #1;
     end
 endtask
 // rd_reg
@@ -40,12 +45,14 @@ task rd_reg;
     output [7:0] rdata;
     begin
         // write addr
-        @(posedge bus_clk);
-        reg_data_wr = 0;
+        repeat(1) @(posedge bus_clk); #1;
         reg_addr = addr;
-        repeat(2) @(posedge bus_clk);
+        reg_addr_wr = 1;
+        repeat(1) @(posedge bus_clk); #1;
+        reg_addr_wr = 0;
+        repeat(2) @(posedge bus_clk); #1;
         // read data
-        @(posedge bus_clk);
+        repeat(1) @(posedge bus_clk); #1;
         rdata = reg_rdata;
     end
 endtask

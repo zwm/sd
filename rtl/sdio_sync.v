@@ -10,8 +10,10 @@ module sdio_sync (
     output buf_free_sd,
     input dma_byte_en_sys,
     output dma_byte_en_sd,
-    input reg_wr_sys,
-    output reg_wr_sd,
+    input reg_data_wr_sys,
+    output reg_data_wr_sd,
+    input reg_addr_wr_sys,
+    output reg_addr_wr_sd,
     input dma_buf_empty_sys, // level
     output dma_buf_empty_sd,
     // sd_clk -> sys_clk
@@ -31,7 +33,7 @@ module sdio_sync (
 // SYS_CLK -> SD_CLK (12M -> 48M)
 //---------------------------------------------------------------------------
 // buf_free_sys, pulse
-sdio_psync u_psync0 (
+sdio_psync u_psync00 (
     .rstn(rstn),
     .sclk(sys_clk),
     .srst(sys_rst),
@@ -41,7 +43,7 @@ sdio_psync u_psync0 (
     .dsig(buf_free_sd)
 );
 // dma_byte_en_sys, pulse
-sdio_psync u_psync1 (
+sdio_psync u_psync01 (
     .rstn(rstn),
     .sclk(sys_clk),
     .srst(sys_rst),
@@ -50,18 +52,28 @@ sdio_psync u_psync1 (
     .drst(sd_rst),
     .dsig(dma_byte_en_sd)
 );
-// reg_wr_sys, pulse
-sdio_psync u_psync2 (
+// reg_data_wr_sys, pulse
+sdio_psync u_psync02 (
     .rstn(rstn),
     .sclk(sys_clk),
     .srst(sys_rst),
-    .ssig(reg_wr_sys),
+    .ssig(reg_data_wr_sys),
     .dclk(sd_clk),
     .drst(sd_rst),
-    .dsig(reg_wr_sd)
+    .dsig(reg_data_wr_sd)
+);
+// reg_addr_wr_sys, pulse
+sdio_psync u_psync03 (
+    .rstn(rstn),
+    .sclk(sys_clk),
+    .srst(sys_rst),
+    .ssig(reg_addr_wr_sys),
+    .dclk(sd_clk),
+    .drst(sd_rst),
+    .dsig(reg_addr_wr_sd)
 );
 // dma_buf_empty_sys, level
-sdio_lsync u_lsync2 (
+sdio_lsync u_lsync00 (
     .rstn(rstn),
     .ssig(dma_buf_empty_sys),
     .dclk(sd_clk),
@@ -73,7 +85,7 @@ sdio_lsync u_lsync2 (
 // SD_CLK -> SYS_CLK (48M -> 12M)
 //---------------------------------------------------------------------------
 // buf0_rd_rdy_sd, level
-sdio_lsync u_lsync0 (
+sdio_lsync u_lsync10 (
     .rstn(rstn),
     .ssig(buf0_rd_rdy_sd),
     .dclk(sys_clk),
@@ -81,7 +93,7 @@ sdio_lsync u_lsync0 (
     .dsig(buf0_rd_rdy_sys)
 );
 // buf1_rd_rdy_sd, level
-sdio_lsync u_lsync1 (
+sdio_lsync u_lsync11 (
     .rstn(rstn),
     .ssig(buf1_rd_rdy_sd),
     .dclk(sys_clk),
@@ -89,7 +101,7 @@ sdio_lsync u_lsync1 (
     .dsig(buf1_rd_rdy_sys)
 );
 // sdio_byte_done_sd, pulse
-sdio_psync u_psync3 (
+sdio_psync u_psync10 (
     .rstn(rstn),
     .sclk(sd_clk),
     .srst(sd_rst),
@@ -99,7 +111,7 @@ sdio_psync u_psync3 (
     .dsig(sdio_byte_done_sys)
 );
 // dma_auto_start_sd, pulse
-sdio_psync u_psync4 (
+sdio_psync u_psync11 (
     .rstn(rstn),
     .sclk(sd_clk),
     .srst(sd_rst),
@@ -109,7 +121,7 @@ sdio_psync u_psync4 (
     .dsig(dma_auto_start_sys)
 );
 // dat_done_sd, pulse
-sdio_psync u_psync5 (
+sdio_psync u_psync12 (
     .rstn(rstn),
     .sclk(sd_clk),
     .srst(sd_rst),

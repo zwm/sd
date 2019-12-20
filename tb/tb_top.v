@@ -7,7 +7,7 @@ module tb_top();
 reg sim_end;
 reg [8*64-1:0] case_dir;
 // global
-reg rstn, sd_clk, bus_clk, reg_data_wr;
+reg rstn, sd_clk, bus_clk, reg_data_wr, reg_addr_wr;
 reg [7:0] reg_addr, reg_wdata; wire [16:0] bus_addr;
 wire [7:0] reg_rdata, bus_rdata, bus_wdata;
 wire bus_ready, bus_rdata_ready, bus_rd, bus_wr;
@@ -98,6 +98,7 @@ sdio_top u0_sdio (
     .sd_clk                 ( sd_clk                ),
     .bus_clk                ( bus_clk               ),
     .reg_data_wr            ( reg_data_wr           ),
+    .reg_addr_wr            ( reg_addr_wr           ),
     .reg_addr               ( reg_addr              ),
     .reg_wdata              ( reg_wdata             ),
     .reg_rdata              ( reg_rdata             ),

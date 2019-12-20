@@ -396,7 +396,7 @@ task tsk_chk2;
                 cmp_cnt2 = cmp_cnt2 + 1; err_cnt2 = err_cnt2 + i[0];
             end
             // norm_irq_clr
-            if (`SDIO_TOP.reg_wr_sd == 1 && `SDIO_TOP.reg_addr == 32) begin
+            if (`SDIO_TOP.reg_data_wr_sd == 1 && `SDIO_TOP.reg_addr == 32) begin
                 j[7:0] = `SDIO_TOP.reg_wdata[7:0];
                 repeat(2) @(posedge `SDIO_TOP.sd_clk);
                 k = norm_irq_sim & j[7:0]; // mask unused bits
@@ -404,7 +404,7 @@ task tsk_chk2;
                 cmp_cnt2 = cmp_cnt2 + 1; err_cnt2 = err_cnt2 + i[0];
             end
             // err_irq_clr
-            if (`SDIO_TOP.reg_wr_sd == 1 && `SDIO_TOP.reg_addr == 33) begin
+            if (`SDIO_TOP.reg_data_wr_sd == 1 && `SDIO_TOP.reg_addr == 33) begin
                 j[7:0] = `SDIO_TOP.reg_wdata[7:0];
                 repeat(2) @(posedge `SDIO_TOP.sd_clk);
                 k = err_irq_sim & j[7:0]; // mask unused bits

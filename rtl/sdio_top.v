@@ -7,6 +7,7 @@ module sdio_top (
     // clock domain: bus_clk
     // reg
     input reg_data_wr, // assert one cycle ahead wdata, 20190925
+    input reg_addr_wr,
     input [7:0] reg_addr,
     input [7:0] reg_wdata,
     output [7:0] reg_rdata,
@@ -36,7 +37,8 @@ wire buf0_rd_rdy_sd, buf0_rd_rdy_sys;
 wire buf1_rd_rdy_sd, buf1_rd_rdy_sys;
 wire dma_byte_en_sys, dma_byte_en_sd;
 wire sdio_byte_done_sd, sdio_byte_done_sys;
-wire reg_wr_sys, reg_wr_sd;
+wire reg_data_wr_sys, reg_data_wr_sd;
+wire reg_addr_wr_sys, reg_addr_wr_sd;
 wire dat_done_sd, dat_done_sys;
 wire dma_buf_empty_sys, dma_buf_empty_sd;
 // misc
@@ -101,7 +103,7 @@ wire dat_crc_err_event, dat_end_err_event;
 wire card_irq_event, blk_gap_event;
 wire dat_done, cmd_done;
 // start!
-assign cmd_start = (reg_wr_sd == 1) && (reg_addr == 9) && (cmd_busy == 1'b0);
+assign cmd_start = (reg_data_wr_sd == 1) && (reg_addr == 9) && (cmd_busy == 1'b0);
 //assign dat_start = dat_present ? (dat_trans_dir ? cmd_tx_end : resp_rx_end) : 1'b0;
 assign dat_start = dat_present ? (dat_trans_dir ? cmd_tx_end : (resp_type == 2'b00 ? cmd_tx_end : resp_rx_end)) : 1'b0; // 20190924
 assign dma_rst_mux = dma_rst | all_sys_rst;
@@ -111,13 +113,14 @@ assign dma_start_mux = dma_sw_start | dma_auto_start_sys;
 assign inst_cmd_sd_rst = cmd_sd_rst | all_sd_rst;
 assign inst_dat_sd_rst = dat_sd_rst | all_sd_rst;
 //assign inst_buf_sd_rst = dat_sd_rst | all_sd_rst | dat_done; // tx end should reset buf
-assign inst_buf_sd_rst = dat_sd_rst | all_sd_rst | cmd_start; // rx may lose data, so rst and cmd_start!
+assign inst_buf_sd_rst = dat_sd_rst | all_sd_rst | cmd_start; // rx may lost data, so rst at cmd_start!
 // bus_addr
 assign bus_addr[16:0] = {dma_mram_sel, dma_addr[15:0]};
 // sync
 assign sync_sys_rst = 1'b0;
 assign sync_sd_rst = 1'b0; // sync no need to reset
-assign reg_wr_sys = reg_data_wr;
+assign reg_data_wr_sys = reg_data_wr;
+assign reg_addr_wr_sys = reg_addr_wr;
 assign dat_done_sd = dat_done;
 // timeout timer
 assign timeout_cnt_en = tmout_cmd_busy_en | 
@@ -191,8 +194,10 @@ sdio_sync u1_sync (
     .dma_buf_empty_sd           ( dma_buf_empty_sd              ),
     .dma_byte_en_sys            ( dma_byte_en_sys               ),
     .dma_byte_en_sd             ( dma_byte_en_sd                ),
-    .reg_wr_sys                 ( reg_wr_sys                    ),
-    .reg_wr_sd                  ( reg_wr_sd                     ),
+    .reg_data_wr_sys            ( reg_data_wr_sys               ),
+    .reg_data_wr_sd             ( reg_data_wr_sd                ),
+    .reg_addr_wr_sys            ( reg_addr_wr_sys               ),
+    .reg_addr_wr_sd             ( reg_addr_wr_sd                ),
     .buf0_rd_rdy_sd             ( buf0_rd_rdy_sd                ), // sd_clk -> sys_clk
     .buf1_rd_rdy_sd             ( buf1_rd_rdy_sd                ),
     .buf0_rd_rdy_sys            ( buf0_rd_rdy_sys               ),
@@ -212,8 +217,9 @@ sdio_reg u2_reg (
     .rstn                       ( rstn                          ),
     .sys_clk                    ( bus_clk                       ),
     .sd_clk                     ( sd_clk                        ),
-    .reg_wr_sys                 ( reg_wr_sys                    ),
-    .reg_wr_sd                  ( reg_wr_sd                     ),
+    .reg_data_wr_sys            ( reg_data_wr_sys               ),
+    .reg_data_wr_sd             ( reg_data_wr_sd                ),
+    .reg_addr_wr_sd             ( reg_addr_wr_sd                ),
     .reg_addr                   ( reg_addr                      ),
     .reg_wdata                  ( reg_wdata                     ),
     .reg_rdata                  ( reg_rdata                     ),
@@ -415,7 +421,7 @@ sdio_flag #(32, 33) u8_flag (
     .dat_sd_rst                 ( dat_sd_rst                    ),
     .all_sd_rst                 ( all_sd_rst                    ),
     .cmd_start                  ( cmd_start                     ),
-    .reg_wr                     ( reg_wr_sd                     ),
+    .reg_data_wr                ( reg_data_wr_sd                ),
     .reg_addr                   ( reg_addr                      ),
     .reg_wdata                  ( reg_wdata                     ),
     .card_irq_event             ( card_irq_event                ),
