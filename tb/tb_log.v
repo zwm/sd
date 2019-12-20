@@ -1,5 +1,5 @@
 // global var
-// flag asemble
+// flag assemble
 wire [7:0] norm_irq_sim = {3'b000, `SDIO_TOP.err_irq, `SDIO_TOP.card_irq, `SDIO_TOP.blk_gap_irq, `SDIO_TOP.dat_complete_irq, `SDIO_TOP.cmd_complete_irq};
 wire [7:0] err_irq_sim = {1'b0, `SDIO_TOP.dat_end_err, `SDIO_TOP.dat_crc_err, `SDIO_TOP.dat_timeout_err, `SDIO_TOP.cmd_index_err, `SDIO_TOP.cmd_end_err, `SDIO_TOP.cmd_crc_err, `SDIO_TOP.cmd_timeout_err};
 //
@@ -288,7 +288,8 @@ task reg_conf;
         set_err_irq_en(log_err_irq_en);
         // enable sd_clk
         set_sd_clk_en(1);
-        //wr_reg(28, 8'h31); // enable will cause error!!!
+        wr_reg(28, 8'h01);
+        // wr_reg(28, 8'h31); // reversed edge
         `ifdef SINGLE_BIT_DAT0
             wr_reg(40, 8'h00);
         `endif
@@ -302,8 +303,8 @@ task reg_conf;
             wr_reg(40, 8'h03);
         `endif
         //// clear flag
-        //err_irq_clr;
-        //norm_irq_clr;
+        //err_irq_clr; // auto clear
+        //norm_irq_clr; // auto clear
         // start cmd
         set_cmd_idx(log_cmd_idx);
     end

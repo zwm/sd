@@ -1,1 +1,1 @@
-verdi +v2k +incdir+../tb -f ../flist/flist.vc -ssf tb_top.fsdb -top tb_top &
+verdi +v2k +incdir+../tb -f ../flist/flist.vc -ssf tb_top.fsdb -sswr sdio.rc -top tb_top &

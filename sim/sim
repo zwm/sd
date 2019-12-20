@@ -1,5 +1,5 @@
 #!/bin/bash
-vcs +v2k -debug_all -full64 \
+vcs +v2k -debug_all +rad -full64 \
 -P $NOVAS_HOME/share/PLI/VCS/LINUX64/verdi.tab \
    $NOVAS_HOME/share/PLI/VCS/LINUX64/pli.a \
 +incdir+../tb \

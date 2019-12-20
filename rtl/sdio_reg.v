@@ -182,6 +182,9 @@ reg reg_data_wr_sys_d1;
 //        reg_data_wr_sys_d1 <= 0;
 //    else
 //        reg_data_wr_sys_d1 <= reg_data_wr_sys;
+// no need delay, 20191113
+always @(*)
+    reg_data_wr_sys_d1 = reg_data_wr_sys;
 // reg_data_wr
 always @(posedge sys_clk or negedge rstn)
     if (~rstn) begin
